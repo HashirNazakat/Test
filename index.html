@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ledger">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAFCA Vault — Practice Test Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============ THEME TOKENS ============ */
+:root{
+  --font-display:'Fraunces',serif;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+  --radius:10px;
+}
+/* LEDGER — banknote green engraving */
+[data-theme="ledger"]{
+  --bg:#EDF0EC; --bg2:#E2E7E0; --card:#F7F8F5; --ink:#17251D; --ink2:#5A6B60;
+  --accent:#1E6B4F; --accent-ink:#F4F7F3; --gold:#9A7B2F; --line:#C6CFC5;
+  --good:#1E6B4F; --bad:#A33327; --warn:#9A7B2F; --shadow:0 2px 10px rgba(23,37,29,.08);
+}
+/* TERMINAL — FIU night desk, amber phosphor */
+[data-theme="terminal"]{
+  --bg:#0B0E11; --bg2:#11151A; --card:#141920; --ink:#E8E4D8; --ink2:#8C9199;
+  --accent:#FFB000; --accent-ink:#141414; --gold:#4DD8C7; --line:#232A33;
+  --good:#4DD8C7; --bad:#FF6B5E; --warn:#FFB000; --shadow:0 2px 14px rgba(0,0,0,.5);
+}
+/* DOSSIER — manila case file, stamp red */
+[data-theme="dossier"]{
+  --bg:#E7DCC3; --bg2:#DFD2B4; --card:#F1E8D3; --ink:#2B2419; --ink2:#7A6C52;
+  --accent:#A33327; --accent-ink:#F5EEDD; --gold:#5E5333; --line:#CBBD9C;
+  --good:#4A6B3A; --bad:#A33327; --warn:#8A6A1E; --shadow:0 2px 8px rgba(43,36,25,.14);
+}
+/* NIGHTDESK — indigo fintech console */
+[data-theme="nightdesk"]{
+  --bg:#101430; --bg2:#151A3C; --card:#1A2047; --ink:#E6E9F5; --ink2:#9AA3C7;
+  --accent:#8FA6FF; --accent-ink:#0E1230; --gold:#F5C451; --line:#2A3160;
+  --good:#5FD3A5; --bad:#FF7A7A; --warn:#F5C451; --shadow:0 4px 16px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--font-body);
+  min-height:100vh; transition:background .35s,color .35s; font-size:15.5px; line-height:1.55;
+}
+body::before{ /* faint guilloche field */
+  content:""; position:fixed; inset:0; pointer-events:none; opacity:.05; z-index:0;
+  background-image:radial-gradient(circle at 25% 15%, var(--accent) 0 1px, transparent 1px),
+                   radial-gradient(circle at 75% 85%, var(--gold) 0 1px, transparent 1px);
+  background-size:28px 28px, 34px 34px;
+}
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px 80px;position:relative;z-index:1}
+
+/* ============ HEADER ============ */
+header{display:flex;align-items:center;gap:16px;padding:26px 0 18px;border-bottom:2px solid var(--ink);margin-bottom:26px;flex-wrap:wrap}
+.rosette{width:52px;height:52px;flex:0 0 auto}
+.brand h1{font-family:var(--font-display);font-weight:900;font-size:26px;letter-spacing:.3px;line-height:1.1}
+.brand .sub{font-family:var(--font-mono);font-size:11px;color:var(--ink2);text-transform:uppercase;letter-spacing:1.6px;margin-top:3px}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.theme-dots{display:flex;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+.tdot{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform .15s}
+.tdot:hover{transform:scale(1.15)}
+.tdot.active{border-color:var(--ink)}
+.tdot[data-t="ledger"]{background:linear-gradient(135deg,#EDF0EC 50%,#1E6B4F 50%)}
+.tdot[data-t="terminal"]{background:linear-gradient(135deg,#0B0E11 50%,#FFB000 50%)}
+.tdot[data-t="dossier"]{background:linear-gradient(135deg,#E7DCC3 50%,#A33327 50%)}
+.tdot[data-t="nightdesk"]{background:linear-gradient(135deg,#101430 50%,#8FA6FF 50%)}
+
+/* ============ COMMON ============ */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px}
+.btn{font-family:var(--font-mono);font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;
+  padding:11px 18px;border-radius:8px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;transition:all .15s}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{border-color:var(--line);color:var(--ink2)}
+.btn.small{padding:7px 12px;font-size:11.5px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.mono{font-family:var(--font-mono)}
+.eyebrow{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:1.8px;color:var(--accent);font-weight:600;margin-bottom:6px}
+h2.screen-title{font-family:var(--font-display);font-weight:900;font-size:30px;margin-bottom:4px}
+.muted{color:var(--ink2)}
+.hidden{display:none!important}
+.grid{display:grid;gap:16px}
+.grid.two{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.grid.three{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.pill{font-family:var(--font-mono);font-size:11px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink2)}
+.pill.acc{border-color:var(--accent);color:var(--accent)}
+
+/* ============ HOME ============ */
+.hero{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;margin-bottom:20px}
+@media(max-width:760px){.hero{grid-template-columns:1fr}}
+.hero-main h2{font-family:var(--font-display);font-weight:900;font-size:clamp(28px,4.5vw,42px);line-height:1.08;margin-bottom:10px}
+.hero-main p{color:var(--ink2);max-width:52ch}
+.seal-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center}
+.seal-ring{position:relative;width:130px;height:130px}
+.seal-ring svg{transform:rotate(-90deg)}
+.seal-pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.seal-pct .n{font-family:var(--font-display);font-weight:900;font-size:30px}
+.seal-pct .l{font-family:var(--font-mono);font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink2)}
+.mode-card{cursor:pointer;transition:transform .15s,border-color .15s;position:relative;overflow:hidden}
+.mode-card:hover{transform:translateY(-3px);border-color:var(--accent)}
+.mode-card .mode-tag{font-family:var(--font-mono);font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent);font-weight:600}
+.mode-card h3{font-family:var(--font-display);font-weight:600;font-size:20px;margin:6px 0 6px}
+.mode-card p{font-size:13.5px;color:var(--ink2)}
+.mode-card .corner{position:absolute;top:-14px;right:-14px;width:56px;height:56px;border-radius:50%;background:var(--accent);opacity:.1}
+.stat-strip{display:flex;gap:0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:20px 0;background:var(--card);flex-wrap:wrap}
+.stat-cell{flex:1;min-width:130px;padding:14px 18px;border-right:1px solid var(--line)}
+.stat-cell:last-child{border-right:none}
+.stat-cell .v{font-family:var(--font-display);font-weight:900;font-size:24px}
+.stat-cell .k{font-family:var(--font-mono);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink2)}
+
+/* ============ DOMAIN SETUP ============ */
+.domain-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;background:var(--card)}
+.domain-row:hover{border-color:var(--accent)}
+.domain-row.selected{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.domain-row .dcode{font-family:var(--font-mono);font-weight:600;font-size:12px;color:var(--accent);width:34px}
+.domain-row .dname{flex:1;font-weight:600;font-size:14px}
+.domain-row .dcount{font-family:var(--font-mono);font-size:11.5px;color:var(--ink2)}
+.dbar{height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;width:90px}
+.dbar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+
+/* ============ QUIZ ============ */
+.quiz-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.progress-track{flex:1;height:7px;background:var(--bg2);border-radius:99px;overflow:hidden;min-width:120px}
+.progress-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+.timer{font-family:var(--font-mono);font-weight:600;font-size:16px;padding:6px 14px;border:1.5px solid var(--line);border-radius:8px;background:var(--card)}
+.timer.low{border-color:var(--bad);color:var(--bad);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.55}}
+.q-domain{font-family:var(--font-mono);font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:10px}
+.q-text{font-family:var(--font-display);font-weight:600;font-size:20px;line-height:1.42;margin-bottom:18px}
+.opt{display:flex;gap:12px;align-items:flex-start;padding:13px 15px;border:1.5px solid var(--line);border-radius:9px;margin-bottom:9px;cursor:pointer;transition:all .12s;background:var(--card)}
+.opt:hover{border-color:var(--accent)}
+.opt .key{font-family:var(--font-mono);font-weight:600;font-size:12px;width:24px;height:24px;border:1.5px solid var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-top:1px}
+.opt.picked{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.opt.picked .key{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.opt.correct{border-color:var(--good);box-shadow:inset 0 0 0 1px var(--good)}
+.opt.correct .key{background:var(--good);color:var(--accent-ink);border-color:var(--good)}
+.opt.wrong{border-color:var(--bad);box-shadow:inset 0 0 0 1px var(--bad)}
+.opt.wrong .key{background:var(--bad);color:#fff;border-color:var(--bad)}
+.opt.dim{opacity:.55}
+.explain{border-left:3px solid var(--accent);background:var(--bg2);padding:14px 16px;border-radius:0 9px 9px 0;margin-top:14px;font-size:14px}
+.explain b{font-family:var(--font-mono);font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:5px}
+.quiz-nav{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.flag-btn.flagged{background:var(--warn);border-color:var(--warn);color:var(--accent-ink)}
+.q-map{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.q-map button{width:30px;height:30px;border-radius:7px;border:1.5px solid var(--line);background:var(--card);font-family:var(--font-mono);font-size:11px;color:var(--ink2);cursor:pointer}
+.q-map button.done{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.q-map button.flag{background:var(--warn);color:var(--accent-ink);border-color:var(--warn)}
+.q-map button.now{outline:2px solid var(--ink);outline-offset:1px}
+
+/* ============ RESULTS ============ */
+.verdict{position:relative;text-align:center;padding:40px 20px}
+.stamp{display:inline-block;font-family:var(--font-display);font-weight:900;font-size:46px;letter-spacing:4px;padding:10px 34px;border:4px solid;border-radius:8px;transform:rotate(-6deg);text-transform:uppercase}
+.stamp.pass{color:var(--good);border-color:var(--good)}
+.stamp.fail{color:var(--bad);border-color:var(--bad)}
+.result-num{font-family:var(--font-display);font-weight:900;font-size:64px;line-height:1}
+.dom-break{margin-top:8px}
+.dom-line{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.dom-line .nm{flex:1}
+.dom-line .bar{width:160px;height:7px;background:var(--bg2);border-radius:99px;overflow:hidden}
+.dom-line .bar i{display:block;height:100%;border-radius:99px}
+
+/* ============ BANK / GENERATOR ============ */
+textarea, input[type=text], input[type=number], select{
+  width:100%;background:var(--bg2);border:1.5px solid var(--line);border-radius:8px;color:var(--ink);
+  font-family:var(--font-mono);font-size:13px;padding:10px 12px;outline:none}
+textarea:focus,input:focus,select:focus{border-color:var(--accent)}
+.gen-log{font-family:var(--font-mono);font-size:12px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:12px;max-height:200px;overflow:auto;white-space:pre-wrap}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  font-family:var(--font-mono);font-size:13px;padding:11px 20px;border-radius:99px;z-index:99;box-shadow:var(--shadow)}
+
+.footer-note{margin-top:34px;padding-top:14px;border-top:1px solid var(--line);font-family:var(--font-mono);font-size:11px;color:var(--ink2);line-height:1.7}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <svg class="rosette" viewBox="0 0 60 60" aria-hidden="true">
+    <g fill="none" stroke="var(--accent)" stroke-width="1">
+      <circle cx="30" cy="30" r="27"/><circle cx="30" cy="30" r="21"/>
+      <path d="M30 3 A27 27 0 0 1 30 57 A13 27 0 0 1 30 3 A13 27 0 0 0 30 57" opacity=".7"/>
+      <path d="M3 30 A27 27 0 0 1 57 30 A27 13 0 0 1 3 30 A27 13 0 0 0 57 30" opacity=".7"/>
+      <circle cx="30" cy="30" r="8" stroke="var(--gold)"/>
+      <path d="M30 22 l2.4 5 5.6.6 -4.2 3.8 1.2 5.6 -5-2.9 -5 2.9 1.2-5.6 -4.2-3.8 5.6-.6z" fill="var(--gold)" stroke="none"/>
+    </g>
+  </svg>
+  <div class="brand">
+    <h1>CAFCA Vault</h1>
+    <div class="sub">FinTech AFC · Practice Test Management</div>
+  </div>
+  <div class="header-right">
+    <span class="pill" id="bankPill">0 questions</span>
+    <div class="theme-dots" role="group" aria-label="Theme">
+      <button class="tdot active" data-t="ledger" title="Ledger" aria-label="Ledger theme"></button>
+      <button class="tdot" data-t="terminal" title="Terminal" aria-label="Terminal theme"></button>
+      <button class="tdot" data-t="dossier" title="Dossier" aria-label="Dossier theme"></button>
+      <button class="tdot" data-t="nightdesk" title="Nightdesk" aria-label="Nightdesk theme"></button>
+    </div>
+  </div>
+</header>
+
+<!-- ================= HOME ================= -->
+<section id="scr-home">
+  <div class="hero">
+    <div class="hero-main">
+      <div class="eyebrow">Certified AML FinTech Compliance Associate</div>
+      <h2>Train like the exam.<br>Read risk like an analyst.</h2>
+      <p>Original exam-style questions mapped to the CAFCA content areas — fundamentals, FinTech risk, program management, due diligence, investigations and reporting. Timed simulations, domain drills, weak-spot retries and a growing bank.</p>
+    </div>
+    <div class="card seal-card">
+      <div class="seal-ring">
+        <svg width="130" height="130" viewBox="0 0 130 130">
+          <circle cx="65" cy="65" r="56" fill="none" stroke="var(--bg2)" stroke-width="10"/>
+          <circle id="sealArc" cx="65" cy="65" r="56" fill="none" stroke="var(--accent)" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="351.8" stroke-dashoffset="351.8"/>
+        </svg>
+        <div class="seal-pct"><span class="n" id="sealPct">—</span><span class="l">Readiness</span></div>
+      </div>
+      <div class="mono muted" style="font-size:11px" id="sealHint">Answer questions to build your seal</div>
+    </div>
+  </div>
+
+  <div class="stat-strip">
+    <div class="stat-cell"><div class="v" id="stAnswered">0</div><div class="k">Answered</div></div>
+    <div class="stat-cell"><div class="v" id="stAccuracy">—</div><div class="k">Accuracy</div></div>
+    <div class="stat-cell"><div class="v" id="stStreak">0</div><div class="k">Best streak</div></div>
+    <div class="stat-cell"><div class="v" id="stExams">0</div><div class="k">Mock exams</div></div>
+    <div class="stat-cell"><div class="v" id="stMissed">0</div><div class="k">In retry pile</div></div>
+  </div>
+
+  <div class="grid three">
+    <div class="card mode-card" data-mode="quick"><span class="corner"></span>
+      <div class="mode-tag">10 Q · Untimed</div><h3>Quick Drill</h3>
+      <p>Ten random questions with instant feedback and full explanations. Coffee-break sized.</p></div>
+    <div class="card mode-card" data-mode="domain"><span class="corner"></span>
+      <div class="mode-tag">Custom · Untimed</div><h3>Domain Drill</h3>
+      <p>Pick your content areas and question count. Target the domains dragging your score down.</p></div>
+    <div class="card mode-card" data-mode="exam"><span class="corner"></span>
+      <div class="mode-tag">60 Q · 90 min · 70% pass</div><h3>Exam Simulation</h3>
+      <p>Full mock in the real format: 60 questions, 90-minute clock, flagging, review screen, verdict stamp.</p></div>
+    <div class="card mode-card" data-mode="retry"><span class="corner"></span>
+      <div class="mode-tag">Weak spots</div><h3>Retry Missed</h3>
+      <p>Every question you've ever missed sits in the retry pile until you answer it correctly.</p></div>
+    <div class="card mode-card" data-mode="stats"><span class="corner"></span>
+      <div class="mode-tag">Analytics</div><h3>Performance</h3>
+      <p>Per-domain accuracy, exam history and readiness trend. Know what the examiner would see.</p></div>
+    <div class="card mode-card" data-mode="bank"><span class="corner"></span>
+      <div class="mode-tag">Scale to 1000s</div><h3>Question Bank</h3>
+      <p>Import/export JSON packs, or copy a ready-made prompt to grow the bank via any Claude chat.</p></div>
+  </div>
+
+  <div class="footer-note">
+    All questions in this system are <b>original practice items</b> written to the public CAFCA content outline (60 MCQ · 90-minute proctored exam · 70% to pass). Real ACAMS exam questions are confidential and are not — and cannot be — reproduced here. Progress and your question bank are saved in this browser's local storage — they stay on this device and this browser, and clearing site data will erase them. Use Export in the Question Bank screen to back up or move your custom questions to another device.
+  </div>
+</section>
+
+<!-- ================= DOMAIN SETUP ================= -->
+<section id="scr-setup" class="hidden">
+  <div class="eyebrow">Configure</div>
+  <h2 class="screen-title">Domain Drill</h2>
+  <p class="muted" style="margin-bottom:16px">Select one or more content areas, then choose how many questions.</p>
+  <div id="domainList"></div>
+  <div style="display:flex;gap:12px;align-items:center;margin-top:16px;flex-wrap:wrap">
+    <label class="mono" style="font-size:12px">Questions:
+      <select id="drillCount" style="width:90px;display:inline-block;margin-left:6px">
+        <option>10</option><option selected>15</option><option>20</option><option>30</option><option>40</option>
+      </select>
+    </label>
+    <label class="mono" style="font-size:12px"><input type="checkbox" id="drillTimed"> Timed (90s/question)</label>
+    <button class="btn primary" id="startDrill">Start drill</button>
+    <button class="btn ghost" data-go="home">Back</button>
+  </div>
+</section>
+
+<!-- ================= QUIZ ================= -->
+<section id="scr-quiz" class="hidden">
+  <div class="quiz-top">
+    <span class="pill acc" id="quizMode">Quick Drill</span>
+    <div class="progress-track"><div class="progress-fill" id="qProgress"></div></div>
+    <span class="mono" id="qCount">1 / 10</span>
+    <span class="timer hidden" id="qTimer">90:00</span>
+  </div>
+  <div class="card">
+    <div class="q-domain" id="qDomain"></div>
+    <div class="q-text" id="qText"></div>
+    <div id="qOpts"></div>
+    <div class="explain hidden" id="qExplain"></div>
+    <div class="quiz-nav">
+      <button class="btn ghost small" id="btnPrev">← Prev</button>
+      <button class="btn small flag-btn" id="btnFlag">⚑ Flag</button>
+      <button class="btn primary small" id="btnNext">Next →</button>
+      <button class="btn small" id="btnSubmit" style="margin-left:auto">Submit test</button>
+      <button class="btn ghost small" id="btnQuit">Quit</button>
+    </div>
+  </div>
+  <div class="q-map" id="qMap"></div>
+</section>
+
+<!-- ================= RESULTS ================= -->
+<section id="scr-results" class="hidden">
+  <div class="card verdict">
+    <div id="stampWrap"></div>
+    <div class="result-num" id="resScore">—%</div>
+    <div class="mono muted" id="resDetail"></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="eyebrow">Domain breakdown</div>
+    <div class="dom-break" id="resDomains"></div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    <button class="btn primary" id="resReview">Review answers</button>
+    <button class="btn" id="resRetryMissed">Retry missed now</button>
+    <button class="btn ghost" data-go="home">Home</button>
+  </div>
+</section>
+
+<!-- ================= STATS ================= -->
+<section id="scr-stats" class="hidden">
+  <div class="eyebrow">Analytics</div>
+  <h2 class="screen-title">Performance</h2>
+  <div class="grid two" style="margin-top:14px">
+    <div class="card"><div class="eyebrow">Accuracy by domain</div><div id="statsDomains"></div></div>
+    <div class="card"><div class="eyebrow">Mock exam history</div><div id="statsExams" class="mono" style="font-size:13px"></div></div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    <button class="btn ghost" data-go="home">Back</button>
+    <button class="btn ghost" id="btnResetStats">Reset progress</button>
+  </div>
+</section>
+
+<!-- ================= BANK ================= -->
+<section id="scr-bank" class="hidden">
+  <div class="eyebrow">Scale the bank</div>
+  <h2 class="screen-title">Question Bank</h2>
+  <p class="muted" style="margin:6px 0 16px">Built-in original questions plus everything you import or generate. Custom questions are stored on this device.</p>
+  <div class="grid two">
+    <div class="card">
+      <div class="eyebrow">Grow the bank</div>
+      <p style="font-size:13.5px;margin-bottom:10px" class="muted">This is a static site, so it can't call Claude directly. Instead, pick a domain and count, copy the prompt, paste it into any Claude chat, then paste the JSON it returns into Import →</p>
+      <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <select id="genDomain" style="flex:2;min-width:180px"></select>
+        <select id="genCount" style="flex:1;min-width:80px">
+          <option value="10">10 Qs</option><option value="20" selected>20 Qs</option><option value="30">30 Qs</option>
+        </select>
+      </div>
+      <button class="btn primary" id="btnGenerate" style="width:100%">Copy generator prompt</button>
+      <div class="gen-log hidden" id="genLog" style="margin-top:10px"></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Import / Export</div>
+      <p style="font-size:13.5px;margin-bottom:10px" class="muted">Paste a JSON array of questions to import, or export your full bank to share between devices.</p>
+      <textarea id="importBox" rows="5" placeholder='[{"d":1,"q":"...","o":["A","B","C","D"],"a":0,"e":"why"}]'></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn small" id="btnImport">Import</button>
+        <button class="btn small ghost" id="btnExport">Export bank</button>
+        <button class="btn small ghost" id="btnClearCustom">Delete custom Qs</button>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="eyebrow">Bank contents</div>
+    <div id="bankSummary"></div>
+  </div>
+  <div style="margin-top:16px"><button class="btn ghost" data-go="home">Back</button></div>
+</section>
+
+</div>
+<script>
+/* Original practice questions written to the public CAFCA content outline.
+   Format: d = domain id, q = question, o = options, a = correct index, e = explanation */
+const DOMAINS = {
+  1:{code:"D1",name:"Financial Crime Fundamentals"},
+  2:{code:"D2",name:"FinTech Risk Landscape"},
+  3:{code:"D3",name:"Risk Management Program"},
+  4:{code:"D4",name:"Risk-Based Due Diligence"},
+  5:{code:"D5",name:"Investigations & Law Enforcement"},
+  6:{code:"D6",name:"Identifying & Reporting Suspicious Activity"}
+};
+
+const BUILTIN = [
+/* ---------- D1: FUNDAMENTALS (20) ---------- */
+{d:1,q:"A criminal deposits illicit cash into a payments app in amounts small enough to avoid attention, moves it through several linked wallets, then buys resellable electronics. Which sequence correctly labels the three stages shown?",o:["Integration → layering → placement","Placement → layering → integration","Layering → placement → integration","Placement → integration → layering"],a:1,e:"Placement introduces illicit funds into the financial system, layering obscures their origin through movement, and integration converts them into apparently legitimate assets."},
+{d:1,q:"Which statement best distinguishes terrorist financing from money laundering?",o:["Terrorist financing always involves large sums; laundering involves small sums","Laundering conceals the origin of funds; terrorist financing may use legitimately sourced funds for an illicit purpose","Terrorist financing only occurs through informal value transfer systems","Laundering is illegal, whereas terrorist financing is only a regulatory breach"],a:1,e:"TF is destination-focused: funds may be clean at source (donations, salaries) but destined for terrorism. ML is origin-focused: it conceals proceeds of crime. TF amounts are often small."},
+{d:1,q:"'Structuring' (smurfing) is best described as:",o:["Using shell companies to hold real estate","Breaking transactions into smaller amounts to evade reporting thresholds","Mixing licit and illicit revenue inside a cash-intensive business","Buying and cancelling insurance policies to obtain refunds"],a:1,e:"Structuring deliberately splits transactions to stay below reporting or monitoring thresholds — itself an offence in many jurisdictions even if the funds are clean."},
+{d:1,q:"Which of the following is a predicate offence for money laundering in most jurisdictions?",o:["Filing a suspicious activity report in error","Drug trafficking","Operating a licensed money services business","Holding an unhosted crypto wallet"],a:1,e:"Predicate offences are the underlying crimes that generate proceeds — drug trafficking, fraud, corruption, human trafficking, tax crimes and similar."},
+{d:1,q:"The Financial Action Task Force (FATF) primarily functions as:",o:["A global law enforcement agency with arrest powers","An intergovernmental standard-setter whose recommendations shape national AML/CFT regimes","A trade association for compliance officers","A UN sanctions committee"],a:1,e:"FATF sets the international AML/CFT standards (the 40 Recommendations) and evaluates countries against them; it has no direct enforcement powers over firms."},
+{d:1,q:"A customer asks a support agent whether their account 'has been reported to the authorities.' Confirming that a report was filed would most directly breach rules against:",o:["Tipping off","De-risking","Structuring","Willful blindness"],a:0,e:"Disclosing that a suspicious activity report has been or may be filed is 'tipping off' — a criminal offence in many jurisdictions because it can compromise investigations."},
+{d:1,q:"In the 'three lines of defense' model, transaction monitoring analysts embedded in the compliance function sit in the:",o:["First line","Second line","Third line","Fourth line"],a:1,e:"The first line is the business (owns risk day-to-day), the second is compliance/risk (sets policy, monitors, advises), the third is internal audit (independent assurance)."},
+{d:1,q:"A politically exposed person (PEP) is higher risk primarily because:",o:["PEPs always launder money","Their position creates elevated exposure to bribery and corruption proceeds","They are usually foreign nationals","Regulations prohibit onboarding them"],a:1,e:"PEP status is not an accusation — it reflects heightened corruption risk from public power. PEPs can be onboarded with enhanced due diligence and senior approval."},
+{d:1,q:"Which scenario best illustrates authorised push payment (APP) fraud?",o:["A criminal steals card details and makes online purchases","A victim is deceived into instructing a genuine real-time payment to an account controlled by a fraudster","A merchant processes a refund to the wrong customer","An employee skims cash from a till"],a:1,e:"In APP fraud the victim authorises the payment themselves under deception (impersonation, invoice, romance, purchase scams) — making it hard to reverse, especially on instant rails."},
+{d:1,q:"Synthetic identity fraud differs from traditional identity theft because the fraudster:",o:["Uses a wholly stolen, real identity","Combines real and fabricated attributes to create a new identity that matches no single victim","Only targets deceased persons","Requires physical documents"],a:1,e:"Synthetic identities blend real data (e.g., a genuine national ID number) with fake names/dates, often 'aged' over time — a major risk in remote FinTech onboarding."},
+{d:1,q:"Sanctions screening obligations generally require a firm to:",o:["Freeze all cross-border payments","Screen customers and payments against applicable sanctions lists and block/reject prohibited dealings","File a tax report for sanctioned entities","Screen only customers above a monetary threshold"],a:1,e:"Sanctions are largely strict-liability: firms must screen parties and transactions against relevant lists (e.g., OFAC, UN, EU, UK) regardless of amount, and act on true matches."},
+{d:1,q:"Under a risk-based approach, a firm should:",o:["Apply identical controls to every customer for fairness","Allocate stronger controls and resources where money laundering risk is higher","Decline all high-risk customers","Rely on regulators to define each customer's risk"],a:1,e:"The risk-based approach — the backbone of FATF standards — calibrates control intensity to assessed risk rather than applying uniform or purely rules-driven treatment."},
+{d:1,q:"'Willful blindness' in an AML context refers to:",o:["A system outage that delays monitoring alerts","Deliberately avoiding knowledge of facts that would confirm suspicion","Failing an independent audit","Screening errors caused by fuzzy matching"],a:1,e:"Courts can treat deliberate ignorance — choosing not to ask obvious questions — as equivalent to knowledge, exposing individuals and firms to liability."},
+{d:1,q:"Which is the clearest example of trade-based money laundering (TBML)?",o:["Over-invoicing exported goods to move value across borders","Paying staff salaries in cash","Using a personal account for small business revenue","Purchasing prepaid gift cards at face value"],a:0,e:"TBML manipulates trade — over/under-invoicing, phantom shipments, multiple invoicing — to disguise value transfer as legitimate commerce."},
+{d:1,q:"A money mule is best described as:",o:["A courier who physically smuggles bulk cash","A person who allows their account to receive and forward illicit funds, wittingly or unwittingly","A compliance officer who approves high-risk customers","A crypto miner processing sanctioned transactions"],a:1,e:"Mules — often recruited via job scams or social media — lend their accounts to move criminal proceeds, providing layering and distance from the predicate crime."},
+{d:1,q:"Why are proliferation financing controls relevant to a payments FinTech?",o:["They only apply to defence contractors","Payment channels can be abused to fund WMD programmes, and sanctions evasion networks use front companies and intermediaries","Proliferation financing is not covered by FATF","They apply only to correspondent banks"],a:1,e:"FATF standards extend to proliferation financing; procurement networks use trading fronts, intermediaries and deceptive payment flows that can transit any payments platform."},
+{d:1,q:"The primary purpose of the ACAMS (or any professional) code of ethics for AFC professionals is to:",o:["Guarantee promotion for certified members","Set expectations of integrity, professional conduct and confidentiality in fighting financial crime","Replace national legislation","Standardise salaries across the industry"],a:1,e:"Professional codes commit members to integrity, lawful conduct, confidentiality and continuing competence — reinforcing trust in the profession."},
+{d:1,q:"Which behaviour is a classic red flag of account takeover (ATO) rather than first-party fraud?",o:["A customer disputes a purchase they made themselves","Login from a new device and geography followed by immediate credential changes and rapid fund-out","A customer deposits their own salary","Gradual increase in spending over a year"],a:1,e:"ATO signatures include new device/IP, password and contact-detail changes, then fast drainage to new beneficiaries — the legitimate owner is the victim."},
+{d:1,q:"De-risking is problematic from a policy perspective because it:",o:["Increases a firm's regulatory burden","Pushes whole customer categories out of the regulated system, reducing transparency and financial inclusion","Is prohibited under FATF Recommendation 1","Only affects large banks"],a:1,e:"Wholesale exits of categories (charities, MSBs, corridors) rather than case-by-case risk management drives activity underground and harms inclusion — regulators encourage managing, not blanket-exiting, risk."},
+{d:1,q:"Which of these is an example of the integration stage of laundering?",o:["Depositing cash below thresholds at multiple agents","Converting funds through a chain of crypto swaps","Purchasing a legitimate business or property with cleaned funds","Recruiting mules through social media"],a:2,e:"Integration is the final stage: reinjecting laundered value into the legitimate economy — real estate, businesses, luxury goods — with an apparently lawful origin."},
+
+/* ---------- D2: FINTECH RISK LANDSCAPE (20) ---------- */
+{d:2,q:"A Banking-as-a-Service (BaaS) sponsor bank's core AML concern with its FinTech programmes is that:",o:["FinTechs cannot legally perform KYC","Regulatory accountability for the end-customer risk remains with the bank even when controls are operated by the FinTech","BaaS eliminates the need for transaction monitoring","BaaS customers are automatically low risk"],a:1,e:"In BaaS/embedded finance, the licence-holder retains regulatory accountability. Weak oversight of programme partners' KYC and monitoring is a recurring enforcement theme."},
+{d:2,q:"Why do instant/real-time payment rails increase financial crime risk relative to batch payments?",o:["They carry higher fees","Settlement is irreversible within seconds, compressing the window to detect and stop fraud or block sanctioned payments","They cannot be monitored at all","They only operate domestically"],a:1,e:"Speed and irrevocability mean screening and fraud detection must operate pre-execution in milliseconds; recovery after the fact is far harder — a gift to APP fraudsters and mule networks."},
+{d:2,q:"A BNPL (buy-now-pay-later) provider notices accounts making maximum-value purchases of resellable goods with first instalments funded by stolen cards. This typology is best described as:",o:["Loan stacking with intent to default using compromised payment credentials","Trade-based money laundering","Insider trading","Structuring"],a:0,e:"BNPL fraud commonly pairs never-pay intent with stolen cards or synthetic identities, targeting liquid, resellable goods. Low-friction credit decisions raise exposure."},
+{d:2,q:"Which characteristic of crypto mixers/tumblers makes them attractive for laundering?",o:["They guarantee investment returns","They pool and redistribute funds to break the on-chain link between source and destination addresses","They convert crypto to fiat automatically","They are licensed money transmitters"],a:1,e:"Mixers deliberately obfuscate transaction trails on otherwise transparent ledgers; several have been sanctioned. Exposure to mixer-derived funds is a key VASP red flag."},
+{d:2,q:"Under FATF's 'travel rule' for virtual assets, VASPs must:",o:["Physically verify all customers","Transmit required originator and beneficiary information alongside qualifying virtual asset transfers","Ban transfers to unhosted wallets","Report every transfer to the FIU"],a:1,e:"FATF Recommendation 16 as applied to VASPs requires originator/beneficiary information to travel with transfers, mirroring wire transfer rules and preserving traceability."},
+{d:2,q:"A neobank sees clusters of accounts opened with different names but sharing device fingerprints, IPs and behavioural patterns, each receiving inbound transfers quickly forwarded onward. The most likely typology is:",o:["Payroll processing","A coordinated money mule network","Ordinary family finances","Merchant settlement activity"],a:1,e:"Shared device/network signals plus rapid pass-through across many identities is the classic signature of herder-controlled mule networks exploiting remote onboarding."},
+{d:2,q:"Deepfake technology threatens remote onboarding primarily by:",o:["Slowing down verification queues","Defeating selfie/liveness checks with synthetic video or injected imagery to pass biometric verification","Encrypting customer documents","Improving match rates"],a:1,e:"Generative AI can produce convincing face swaps and injection attacks against liveness detection, enabling synthetic or stolen identities to pass eKYC — driving adoption of injection-attack detection."},
+{d:2,q:"A BIN attack against a card-issuing FinTech involves:",o:["Physical theft of cards from the mail","Fraudsters testing rapid sequences of generated card numbers within a bank identification number range to find valid cards","Bribing bank staff for PINs","Cloning contactless terminals"],a:1,e:"BIN attacks brute-force card number/expiry/CVV combinations, often visible as bursts of small-value authorisation attempts with high decline rates."},
+{d:2,q:"P2P payment platforms are attractive for scam proceeds primarily because:",o:["They require enhanced due diligence for every user","Transfers are instant, often framed as between trusted parties, and funds can be rapidly cashed out or layered onward","They only support small amounts","They are exempt from AML regulation"],a:1,e:"Speed, social trust framing and easy cash-out make P2P apps a favoured landing point for romance, purchase and impersonation scam proceeds."},
+{d:2,q:"The key AML risk of e-money and prepaid products with weak load limits is:",o:["Currency conversion costs","Anonymous or lightly verified value storage and cross-border movement outside traditional banking visibility","Excessive customer friction","Chargeback exposure"],a:1,e:"Prepaid/e-money instruments can approximate cash if identity, load and redemption limits are weak — which is why thresholds and tiered KYC exist in most regimes."},
+{d:2,q:"In embedded finance, 'programme risk' refers to:",o:["Software bugs in the mobile app","Financial crime exposure introduced by the commercial partner whose brand fronts the regulated product","Interest rate volatility","Cloud hosting outages"],a:1,e:"When a non-financial brand distributes regulated products, its customer base, incentives and controls become part of the licence-holder's risk surface and must be overseen."},
+{d:2,q:"Which factor most increases sanctions risk for a cross-border remittance FinTech?",o:["Offering multiple app languages","Corridor exposure to sanctioned or high-risk jurisdictions and reliance on partner networks with weaker screening","Using ISO 20022 messaging","Charging low fees"],a:1,e:"Corridor mix and downstream partner controls determine effective sanctions exposure; a firm can be liable for facilitating prohibited payments through poorly screened partners."},
+{d:2,q:"A crypto exchange receives deposits traced to a darknet marketplace three hops back. Blockchain analytics flags this as:",o:["Direct exposure","Indirect exposure requiring risk assessment of the intermediary path","Proof the customer is a criminal","Irrelevant, since only one-hop exposure matters"],a:1,e:"Indirect exposure via intermediate addresses still matters; risk depends on hop distance, amounts, obfuscation attempts and the customer's profile — it triggers review, not automatic guilt."},
+{d:2,q:"'On/off-ramp' risk in crypto refers to:",o:["Exchange server downtime","The fiat-to-crypto conversion points where illicit value enters or exits the banking system","Wallet backup failures","Mining pool concentration"],a:1,e:"Ramps are the choke points connecting crypto to fiat; they concentrate laundering risk and regulatory attention because traceability and identity converge there."},
+{d:2,q:"Which onboarding pattern most suggests synthetic identities at a digital lender?",o:["Applicants with long credit histories and stable addresses","Thin-file applicants whose identity elements validate individually but show no coherent history together, often sharing contact details or devices","Applicants who visit a branch","Joint applications from married couples"],a:1,e:"Synthetics typically pass element-level checks but fail coherence: no genuine footprint tying name, ID number and history together, plus clustering of phones, emails or devices."},
+{d:2,q:"Gaming and virtual asset marketplaces create laundering risk mainly through:",o:["High latency","Purchase and resale of in-game items/currency to convert and move illicit value","Age verification requirements","Server locations"],a:1,e:"Virtual items and currencies can be bought with dirty money and resold for clean withdrawals, sometimes across borders — classic value transformation."},
+{d:2,q:"A payments firm's fraud team notes many new merchants with websites cloned from templates, minimal history and immediate high-volume card acceptance followed by mass disputes. This indicates:",o:["Bust-out / transaction laundering merchant fraud","Normal seasonal trading","Friendly fraud by cardholders","A BIN attack"],a:0,e:"Short-lived shell merchants that process rapidly then vanish (bust-out), or front for undisclosed businesses (transaction laundering), are core acquiring-side risks."},
+{d:2,q:"Why are unhosted (self-custodied) wallets a heightened-risk factor rather than a prohibited one under most regimes?",o:["They are illegal everywhere","They reduce visibility of counterparty identity, warranting risk-based measures, but legitimate users also self-custody","Regulators cannot see any blockchain data","They only exist on darknets"],a:1,e:"Most frameworks apply risk-based mitigations (analytics, limits, enhanced scrutiny) to unhosted wallet interactions rather than bans, recognising legitimate self-custody."},
+{d:2,q:"Account opening 'velocity' controls exist to detect:",o:["Slow app performance","Bursts of applications from linked devices, IPs or identity elements indicating scripted or organised abuse","Customer complaints","Marketing campaign success"],a:1,e:"Velocity rules catch automation and organised rings during acquisition — many synthetic and mule accounts are created in bursts sharing infrastructure."},
+{d:2,q:"Which best describes 'first-party' fraud at a neobank?",o:["A third party steals credentials and drains the account","The genuine customer acts dishonestly — e.g., false disputes, bonus abuse or never-pay credit intent","A vendor overcharges the bank","An employee alters records"],a:1,e:"First-party fraud is committed by the account holder themselves; it requires different detection (behavioural, credit and dispute patterns) from third-party compromise."},
+
+/* ---------- D3: RISK MANAGEMENT PROGRAM (20) ---------- */
+{d:3,q:"The starting point for designing a FinTech's AML control framework should be:",o:["Copying a large bank's policy suite","An enterprise-wide risk assessment of the firm's products, customers, channels and geographies","Purchasing the most expensive monitoring vendor","Waiting for the first regulatory exam"],a:1,e:"The EWRA identifies where inherent risk sits so controls, resourcing and appetite can be calibrated — the foundation of any risk-based programme."},
+{d:3,q:"Residual risk is best defined as:",o:["Risk before any controls are applied","Risk remaining after controls are applied, given their effectiveness","Risk the regulator accepts on the firm's behalf","Risk transferred to insurers"],a:1,e:"Residual = inherent risk minus control effectiveness. Boards set appetite against residual risk; weak controls leave residual close to inherent."},
+{d:3,q:"A risk appetite statement in an AFC programme should:",o:["Promise zero financial crime","Articulate the types and levels of financial crime risk the firm will and will not accept, guiding decisions like markets and products","List every monitoring rule","Be kept confidential from the board"],a:1,e:"Appetite translates strategy into boundaries — e.g., no shell-company customers, no exposure to certain corridors — and is owned and approved at board level."},
+{d:3,q:"Which is a core responsibility of the MLRO / BSA Officer that cannot be fully delegated?",o:["Writing marketing copy","Accountability for the effectiveness of the AML programme and for suspicious activity reporting decisions","Approving all customer refunds","Managing cloud infrastructure"],a:1,e:"Tasks can be delegated; accountability cannot. The appointed officer answers for programme adequacy, SAR decisioning and regulator engagement."},
+{d:3,q:"Independent testing of the AML programme should be performed by:",o:["The analysts who built the monitoring rules","A function or party independent of those who designed and operate the controls, such as internal audit or a qualified external reviewer","The head of sales","The vendor that sold the system"],a:1,e:"Independence is the point: audit assesses design and operating effectiveness without conflict of interest, reporting to the board/audit committee."},
+{d:3,q:"AML training in a fast-scaling FinTech is most effective when it is:",o:["A single generic video at onboarding","Role-tailored, recurring, and updated for the firm's actual typologies and products","Optional for engineers","Focused only on regulations, not scenarios"],a:1,e:"Effective training is targeted (support, onboarding, engineering, leadership see different risks), scenario-based, refreshed as products and typologies evolve, and tracked."},
+{d:3,q:"When a FinTech outsources KYC operations to a third party, the firm:",o:["Transfers its regulatory liability to the vendor","Retains regulatory responsibility and must perform due diligence and ongoing oversight of the provider","No longer needs a compliance officer","Must notify every customer individually"],a:1,e:"You can outsource the activity, not the accountability. Vendor risk management — due diligence, SLAs, QA sampling, audit rights — is a supervisory expectation."},
+{d:3,q:"Transaction monitoring 'model tuning' primarily aims to:",o:["Reduce infrastructure costs","Calibrate thresholds and logic so alerts capture true risk while controlling false positives, with changes tested and documented","Eliminate all alerts","Hide rules from auditors"],a:1,e:"Tuning uses above/below-the-line testing and outcome analysis to balance detection and efficiency; governance requires documented, approved, validated changes."},
+{d:3,q:"A key risk indicator (KRI) differs from a key performance indicator (KPI) in that a KRI:",o:["Measures profitability","Signals changes in risk exposure — e.g., alert backlog age, SAR conversion rate, screening match handling times","Tracks marketing conversion","Is only reported annually"],a:1,e:"KRIs give leadership early warning of rising risk or control strain, enabling intervention before failures become breaches."},
+{d:3,q:"Why is a documented rationale required when closing a monitoring alert as non-suspicious?",o:["To increase alert volume","To evidence reasonable, consistent decision-making for QA, audit and regulators, and to support future investigations","To share with the customer","It is not required"],a:1,e:"Dispositions must be defensible. Documentation shows the four-eyes logic applied and lets QA detect drift; regulators routinely sample closed alerts."},
+{d:3,q:"The board's role in AFC governance is best described as:",o:["Investigating individual alerts","Setting risk appetite, ensuring adequate resources and MI, and holding management accountable for programme effectiveness","Approving each SAR","Selecting screening vendors"],a:1,e:"Boards govern: appetite, culture, resourcing, oversight through management information — not operational casework."},
+{d:3,q:"Automation and machine learning in AFC controls introduce 'model risk' that is best mitigated by:",o:["Avoiding all automation","Model governance: documentation, validation, explainability, performance monitoring and human oversight of outcomes","Letting vendors self-certify","Retraining models daily without review"],a:1,e:"ML can drift, embed bias or fail silently; governance frameworks require validation, monitoring, explainability and clear human accountability."},
+{d:3,q:"A compliance team drowning in false positives should FIRST:",o:["Switch off the noisiest rules immediately","Analyse alert outcomes to identify ineffective rules and re-tune with documented testing and approval","Hire triple the analysts permanently","Ignore alerts older than 30 days"],a:1,e:"Data-driven tuning under change governance fixes the root cause; switching rules off without analysis creates coverage gaps regulators penalise."},
+{d:3,q:"Which document translates policy into step-by-step operational instructions?",o:["The risk appetite statement","Procedures","The annual report","The marketing plan"],a:1,e:"Policies state what and why; procedures state how, who and when. Both must stay synchronised with actual practice."},
+{d:3,q:"Compliance MI reported to senior management should ideally include:",o:["Only good news to maintain morale","Trends in alerts, SARs, screening, backlogs, QA results, training completion and emerging risks, with commentary","Raw system logs","Individual customer names in all cases"],a:1,e:"Decision-useful MI shows trend, capacity and control health, enabling leadership to act — and evidencing governance to supervisors."},
+{d:3,q:"When launching a new product, financial crime input should occur:",o:["After launch, once volumes justify it","At design stage via a product risk assessment, so controls and limits ship with the product","Only if the regulator asks","Never — product teams own all risk"],a:1,e:"'Compliance by design' embeds risk assessment, controls, limits and monitoring before go-live; retrofitting is costlier and exposes the firm during the gap."},
+{d:3,q:"A sanctions screening programme's effectiveness depends most heavily on:",o:["The logo of the vendor","List management, matching calibration (fuzzy logic), quality of customer data, and disciplined alert adjudication","Screening only at onboarding","Manual Google searches"],a:1,e:"Effectiveness = current lists + well-tuned matching + clean data + trained adjudicators + rescreening on list and customer changes."},
+{d:3,q:"Record-keeping obligations generally require firms to retain customer and transaction records:",o:["For 30 days","For a minimum statutory period (commonly five years or more) after the relationship ends or transaction occurs","Only while the customer is active","Indefinitely in paper form"],a:1,e:"Most regimes mandate ~5 years minimum retention so records remain available to investigations; local law sets the exact period."},
+{d:3,q:"The purpose of a compliance culture ('tone from the top') is to:",o:["Shift blame to junior staff","Ensure commercial pressure never overrides control decisions, and that escalation is safe and expected","Replace written policies","Slow business growth deliberately"],a:1,e:"Culture determines whether controls work under pressure. Leadership behaviour — resourcing, remuneration, respect for escalation — signals what the firm truly values."},
+{d:3,q:"A rapidly scaling FinTech doubles customer volume in six months. The AFC programme should respond by:",o:["Keeping controls static to preserve consistency","Reassessing risk, scaling monitoring capacity and automation, and updating the EWRA and resourcing plan","Pausing SAR filing until staffing catches up","Loosening onboarding checks to reduce backlog"],a:1,e:"Growth changes the risk profile. Programmes must scale detection, people and governance in step — backlogs and threshold-loosening are classic enforcement findings."},
+
+/* ---------- D4: RISK-BASED DUE DILIGENCE (20) ---------- */
+{d:4,q:"The core components of customer due diligence (CDD) are:",o:["Marketing consent and device type","Identifying and verifying the customer, understanding ownership/control, and understanding the purpose and expected nature of the relationship","Credit scoring only","Employment verification only"],a:1,e:"CDD = who they are (ID&V), who owns/controls them (for entities), and what activity to expect — the baseline for detecting deviation later."},
+{d:4,q:"Electronic KYC (eKYC) with document capture and selfie liveness is designed to mitigate which risk of non-face-to-face onboarding?",o:["Currency risk","Impersonation and use of stolen or synthetic identities","Interest rate risk","Chargeback risk"],a:1,e:"Remote channels remove physical presence; document authenticity checks plus biometric matching and liveness detection re-establish that a real, present person matches a genuine document."},
+{d:4,q:"Enhanced due diligence (EDD) is required when:",o:["Every customer opens an account","Risk factors are elevated — e.g., PEPs, high-risk jurisdictions, complex structures or unusual expected activity","A customer complains","The marketing team requests it"],a:1,e:"EDD scales scrutiny with risk: deeper source of funds/wealth work, senior approval, more frequent reviews and tighter monitoring."},
+{d:4,q:"Source of funds (SoF) vs source of wealth (SoW): which is correct?",o:["They are identical terms","SoF concerns the origin of money in a specific transaction/relationship; SoW concerns how the customer's overall wealth was accumulated","SoW applies only to companies","SoF applies only to PEPs"],a:1,e:"SoF: where this money came from (salary account, sale proceeds). SoW: the story of total net worth (career, inheritance, business ownership). EDD often requires both."},
+{d:4,q:"Identifying beneficial owners of a corporate customer means establishing:",o:["Only the listed directors","The natural persons who ultimately own or control the entity, typically via ownership thresholds (e.g., 25%) or other means of control","The company's bankers","Its top customers"],a:1,e:"UBO identification pierces layers of entities to reach controlling natural persons — the defence against shell-company anonymity."},
+{d:4,q:"A customer risk rating model should combine factors such as:",o:["Favourite products and app usage time","Customer type, geography, products/channels used, expected activity and adverse information","Only nationality","Only transaction count"],a:1,e:"Multi-factor risk models drive proportionate due diligence and review frequency; single-factor models create blind spots and potential discrimination issues."},
+{d:4,q:"'Perpetual KYC' (pKYC) refers to:",o:["Repeating full onboarding every month","Event- and data-driven ongoing due diligence that refreshes customer information when triggers occur, instead of only fixed periodic reviews","Never reviewing customers after onboarding","Outsourcing KYC permanently"],a:1,e:"pKYC uses triggers (ownership changes, adverse media, behaviour shifts) to keep profiles current continuously — suited to FinTech data environments."},
+{d:4,q:"During onboarding, screening should cover:",o:["Sanctions lists only after first transaction","Sanctions, PEP and adverse media screening at onboarding, with rescreening on an ongoing basis","Credit bureaus only","Social media followers"],a:1,e:"Day-one screening plus ongoing rescreening (as lists and customers change) is standard; sanctions screening in particular must precede activity."},
+{d:4,q:"A corporate applicant presents a three-layer offshore structure with nominee shareholders and no clear business rationale. The appropriate response is:",o:["Onboard quickly to win the deal","Treat opacity as a red flag: obtain full ownership transparency and rationale, apply EDD, and decline if control cannot be established","Skip UBO checks since nominees are listed","Ask the customer to self-certify low risk"],a:1,e:"Unexplained complexity and nominees are classic concealment tools. If the firm cannot identify UBOs and legitimate purpose, it should not proceed."},
+{d:4,q:"Simplified due diligence (SDD) may be appropriate when:",o:["The customer is in a hurry","The relationship presents demonstrably low risk under the firm's assessment and applicable law — e.g., certain regulated institutions or low-limit products","The customer refuses to provide documents","Sales targets are behind"],a:1,e:"SDD is a risk-based reduction — never an exemption — permitted for demonstrably lower-risk scenarios and still requiring monitoring."},
+{d:4,q:"Which is a red flag during document verification?",o:["A passport within its validity period","Font inconsistencies, misaligned security features, or a document image reused across multiple applicants","A matching selfie","An address matching the application"],a:1,e:"Template tampering and image reuse indicate forgery or fraud rings; device and image forensics catch reuse invisible to manual review."},
+{d:4,q:"A PEP determination on an existing customer should trigger:",o:["Automatic account closure","Senior management approval to continue, EDD including SoW/SoF, and enhanced ongoing monitoring","No change until next annual review","A public announcement"],a:1,e:"Standards require senior sign-off plus enhanced measures for PEP relationships — not automatic exit; the risk is managed, not presumed criminal."},
+{d:4,q:"Expected activity profiling at onboarding matters because it:",o:["Improves app aesthetics","Creates the baseline against which future transactions are judged as consistent or anomalous","Is legally required only for corporates","Replaces monitoring"],a:1,e:"Monitoring detects deviation from expectation; without a stated purpose and anticipated volumes, 'unusual' has no reference point."},
+{d:4,q:"For a money services business (MSB) applying to become a customer, EDD would typically include:",o:["Nothing beyond standard CDD","Review of its licensing/registration, AML programme quality, agent oversight, and transaction corridor profile","Only the CEO's passport","A site visit to every agent worldwide"],a:1,e:"MSBs carry elevated risk; diligence assesses their regulatory status and the strength of their own AML controls — effectively KYCC (know your customer's customers) risk."},
+{d:4,q:"If a customer refuses to provide required CDD information, the firm should:",o:["Proceed with reduced limits indefinitely","Decline or exit the relationship in line with policy, and consider whether the refusal itself warrants a suspicious activity report","Fine the customer","Escalate to the marketing team"],a:1,e:"Inability to complete CDD generally bars the relationship; unexplained refusal is itself potentially suspicious and should be assessed for reporting."},
+{d:4,q:"Ongoing monitoring as part of CDD includes:",o:["Only annual document refresh","Scrutinising transactions against the expected profile and keeping CDD information current","Reading customer emails","Only monitoring above $10,000"],a:1,e:"CDD is continuous: transactional consistency checks plus keeping identity, ownership and profile data up to date."},
+{d:4,q:"Biometric onboarding data should be handled with particular care because:",o:["It is cheap to store","It is sensitive personal data subject to privacy law, and compromise is irreversible — you cannot reset a face","Regulators prohibit encryption","It expires monthly"],a:1,e:"AFC teams must balance AML obligations with data protection (e.g., GDPR-class regimes); biometrics demand strict minimisation, security and lawful basis."},
+{d:4,q:"An applicant's ID verifies, but their phone number appears on 14 other applications and their 'salary' arrives from a personal account abroad. The risk-based response is:",o:["Approve — the ID passed","Hold and investigate the linkage signals before approval; network indicators outweigh a single passed check","Approve with a welcome bonus","Reject all applicants from that country"],a:1,e:"Element-level passes don't clear network-level red flags. Shared contact points across applications indicate organised abuse; coherence checks are the counter to synthetics and mules."},
+{d:4,q:"Reliance on third parties for CDD (where permitted) requires the relying firm to:",o:["Do nothing further","Obtain the CDD information immediately, satisfy itself of the third party's standards, and retain ultimate responsibility","Delete its own records","Notify FATF"],a:1,e:"Reliance regimes allow using another regulated party's CDD, but responsibility stays with the relying firm and information must be obtainable without delay."},
+{d:4,q:"Trigger events that should prompt a customer review outside the periodic cycle include:",o:["A customer changing their app theme","Material changes in ownership, adverse media hits, unusual activity alerts, or a change in product usage inconsistent with profile","National holidays","Password resets alone"],a:1,e:"Event-driven review keeps risk ratings honest between periodic refreshes — the essence of trigger-based and perpetual KYC approaches."},
+
+/* ---------- D5: INVESTIGATIONS & LAW ENFORCEMENT (20) ---------- */
+{d:5,q:"The first step when an alert is escalated for investigation should be to:",o:["Contact the customer and ask if they are laundering money","Gather and review internal information — KYC file, transaction history, prior alerts and linked accounts — to establish context","File a SAR immediately","Freeze the account in every case"],a:1,e:"Investigations start with a full internal picture: profile vs activity, historical behaviour and network links. Premature customer contact risks tipping off."},
+{d:5,q:"Which open-source research practice is appropriate during an investigation?",o:["Messaging the subject's contacts from a personal account","Using public records, corporate registries and adverse media via documented, lawful searches, and recording sources and dates","Creating a fake profile to befriend the customer","Purchasing hacked data"],a:1,e:"OSINT must be lawful, proportionate and documented. Deceptive engagement and illegally obtained data taint findings and create legal exposure."},
+{d:5,q:"When a law enforcement production order/subpoena for customer records arrives, the firm should:",o:["Ignore it if the customer is profitable","Validate its authenticity and scope, route it through legal/compliance, respond within the deadline, and keep the request confidential","Post it in the staff group chat","Tell the customer immediately"],a:1,e:"Legal process requires verified, scoped, timely and confidential handling — disclosure to the subject can constitute tipping off or obstruction."},
+{d:5,q:"A 'keep open' (or 'letter of maintenance') request from law enforcement asks the firm to:",o:["Close the account within 24 hours","Maintain an account it might otherwise exit so investigators can monitor activity, typically for a defined period with documented approval","Waive all fees","Stop monitoring the account"],a:1,e:"Keep-open requests preserve investigative visibility. Firms should obtain them in writing, time-limit them, keep monitoring, and document the risk acceptance."},
+{d:5,q:"Good evidence handling in internal investigations means:",o:["Editing records for clarity","Preserving original data with timestamps and access logs, documenting the chain of custody, and avoiding alteration","Deleting drafts","Storing findings in personal email"],a:1,e:"If a case reaches regulators or court, integrity of evidence — provenance, immutability, chain of custody — determines whether it stands up."},
+{d:5,q:"An investigator finds that flagged activity involves an employee's own account. The correct action is:",o:["Handle it quietly within the team","Escalate through the internal/insider risk channel to compliance and, as appropriate, HR/legal — with strict confidentiality","Confront the employee at their desk","Ignore it to avoid awkwardness"],a:1,e:"Insider cases follow a protected escalation path with need-to-know confidentiality; informal handling contaminates evidence and creates retaliation and tipping risks."},
+{d:5,q:"Link analysis in a FinTech investigation typically connects:",o:["Only names and addresses","Shared devices, IPs, emails, phone numbers, beneficiaries, funding sources and behavioural patterns across accounts","Marketing preferences","App store reviews"],a:1,e:"Digital-native firms hold rich telemetry; pivoting on shared identifiers exposes networks (mule herds, fraud rings) invisible at single-account level."},
+{d:5,q:"Public–private information-sharing partnerships (e.g., national FIU forums, 314(b)-style gateways) exist to:",o:["Replace SAR filing","Enable lawful sharing of typologies and, where permitted, case information between institutions and authorities to disrupt networks","Market compliance software","Publish customer data openly"],a:1,e:"Financial crime spans institutions; legal gateways for sharing sharpen detection and enable coordinated disruption while protecting confidentiality."},
+{d:5,q:"During an investigation the firm receives a media enquiry about the customer. The investigator should:",o:["Confirm the investigation to the journalist","Make no comment, refer the enquiry to communications/legal, and never confirm or deny reporting or investigations","Share redacted findings","Ask the journalist for their sources in exchange"],a:1,e:"Confirming an investigation breaches confidentiality and possibly tipping-off rules; media handling belongs to designated functions."},
+{d:5,q:"Deciding to exit a customer after an investigation requires consideration of:",o:["Exit speed only","Legal obligations, any law-enforcement requests to keep the account open, timing that avoids tipping off, and handling of remaining funds per policy and law","The customer's social media response","Whether the customer will pay an exit fee"],a:1,e:"Exits must be coordinated: check for keep-open requests, avoid signalling the reason, follow rules on returning funds, and document rationale."},
+{d:5,q:"The purpose of an investigation narrative/case memo is to:",o:["Entertain auditors","Record facts found, analysis performed, and the rationale for the outcome so an independent reader can follow the logic","Replace the SAR","List the analyst's opinions about the customer's character"],a:1,e:"Case documentation supports decisions (report / no report / exit), enables QA and audit, and preserves institutional memory for repeat subjects."},
+{d:5,q:"A foreign authority contacts the firm directly demanding customer data. The firm should:",o:["Comply instantly to be cooperative","Route the request through legal to verify jurisdiction and lawful basis (e.g., MLAT or local process) before any disclosure","Sell the data at market rate","Forward it to the customer"],a:1,e:"Cross-border requests need a lawful channel; direct disclosure may breach local privacy, secrecy or blocking laws even when the request is well-intentioned."},
+{d:5,q:"Which behaviour during an interview with a customer (where permitted, e.g., fraud claims) is appropriate?",o:["Accusing them of laundering","Asking open, non-leading questions about the activity's purpose and documenting responses without revealing suspicion or monitoring logic","Explaining exactly which rule flagged them","Promising no report will be filed"],a:1,e:"Fact-finding contact must not disclose suspicion, reports or detection logic. Open questions gather explanation; promises and accusations are both improper."},
+{d:5,q:"An investigation shows activity consistent with human trafficking indicators. Beyond the SAR, the investigator should:",o:["Do nothing else ever","Follow escalation procedures, use any urgent law-enforcement contact channels per policy, and preserve records — potential imminent harm changes urgency","Post warnings publicly","Contact the traffickers"],a:1,e:"Crimes involving ongoing human harm may justify urgent, lawful proactive engagement with authorities through established channels, alongside normal reporting."},
+{d:5,q:"'Defensive' investigation shortcuts — closing cases without genuine review to hit SLA targets — expose the firm to:",o:["Nothing, if metrics look good","Regulatory findings of ineffective systems and controls, missed reporting obligations, and personal accountability for approvers","Better audit ratings","Lower risk overall"],a:1,e:"Quality beats throughput. Regulators sample cases; hollow dispositions evidence systemic failure and can implicate individuals who signed them off."},
+{d:5,q:"Crypto transaction tracing differs from fiat tracing mainly because:",o:["Blockchains hide all transaction data","Public ledgers make flows visible and permanent, but attribution of addresses to real-world identities requires analytics and off-chain data","Crypto transactions expire","No tools exist"],a:1,e:"On-chain data is transparent; the investigative challenge is attribution — clustering addresses and linking them to entities via exchanges, analytics and legal process."},
+{d:5,q:"When multiple internal teams (fraud, AML, sanctions) investigate the same subject, best practice is to:",o:["Work in strict isolation","Coordinate through case management with appropriate information sharing, since fraud, laundering and sanctions issues frequently overlap (FRAML convergence)","Let the fastest team decide alone","Merge all teams permanently"],a:1,e:"Convergence ('FRAML') recognises that fraud proceeds are laundered and sanctions evasion uses fraud tools; coordinated casework prevents blind spots and duplicate customer contact."},
+{d:5,q:"Retention of investigation records should ensure they are:",o:["Deleted upon case closure","Retrievable for the statutory period, access-controlled, and complete enough to reconstruct the case if authorities follow up years later","Stored only in an analyst's notebook","Printed and shredded"],a:1,e:"Follow-up requests can arrive long after closure; complete, secured, retrievable case records are both a legal duty and an investigative asset."},
+{d:5,q:"A request for information (RFI) from the firm's FIU following a filed report should be treated as:",o:["Optional feedback","A priority obligation: respond accurately and within deadline, coordinating internally while maintaining confidentiality","A sales opportunity","Grounds to close the account immediately in all cases"],a:1,e:"FIU follow-ups indicate active interest; timely, accurate, confidential responses are required and often legally mandated."},
+{d:5,q:"The main reason investigators avoid stating conclusions of guilt in case files is:",o:["Style preference","Firms report suspicion, not verdicts — guilt determinations belong to courts, and overstated conclusions create legal and defamation risk","It saves typing time","Regulators forbid analysis"],a:1,e:"The reporting standard is suspicion/reasonable grounds. Files should present facts and analysis; declaring someone 'a money launderer' oversteps the firm's role."},
+
+/* ---------- D6: IDENTIFYING & REPORTING SUSPICIOUS ACTIVITY (20) ---------- */
+{d:6,q:"The trigger for filing a suspicious activity/transaction report is generally:",o:["Proof beyond reasonable doubt of a crime","Knowledge or suspicion (or reasonable grounds to suspect) that funds relate to criminal activity or terrorist financing","A customer complaint","Transactions above a fixed amount only"],a:1,e:"The threshold is suspicion, not proof. Firms report so authorities can investigate; waiting for certainty defeats the system's purpose."},
+{d:6,q:"Which pattern is a classic structuring red flag in a digital wallet?",o:["One salary credit per month","Repeated deposits just under an identity-verification or reporting threshold across consecutive days","A single large verified house-sale credit","Annual bonus payments"],a:1,e:"Consistent just-below-threshold amounts, especially across short periods or multiple linked accounts, indicate deliberate threshold avoidance."},
+{d:6,q:"A strong SAR/STR narrative should:",o:["Contain only the customer's name and 'suspicious'","Explain who, what, when, where, why and how — the activity, why it is suspicious against the customer's profile, and totals/dates/counterparties","Copy-paste raw transaction logs without context","Speculate about the customer's guilt in strong terms"],a:1,e:"FIUs act on narratives. The 5W1H structure with profile context and specifics makes a report usable; conclusory or data-dump reports waste the intelligence value."},
+{d:6,q:"After filing a SAR, the firm should:",o:["Notify the customer as a courtesy","Keep the filing strictly confidential, continue monitoring, and file continuing reports if the activity persists","Immediately close the account in all cases","Post about it internally to all staff"],a:1,e:"Confidentiality is absolute (tipping off). Relationships are not automatically exited; continued activity may warrant continuing/supplementary reports."},
+{d:6,q:"A customer's account receives many small third-party credits with emotive references ('thank you', 'for the puppy', 'deposit') followed by rapid transfers to one overseas beneficiary. This pattern most suggests:",o:["Normal e-commerce refunds","Collection of scam-victim payments being consolidated and forwarded — a mule/fraud proceeds pattern","Payroll processing","Dividend income"],a:1,e:"Many unconnected senders, consumer-style references, and fast consolidation offshore is a hallmark of purchase/romance scam collection accounts."},
+{d:6,q:"Threshold-based reports (e.g., large cash/currency transaction reports) differ from SARs because they:",o:["Require suspicion","Are objective, amount-triggered filings regardless of suspicion, while SARs are judgment-based","Replace SARs entirely","Are voluntary"],a:1,e:"CTR-style reports fire mechanically at set amounts; SARs rest on assessed suspicion. An activity can require both."},
+{d:6,q:"Which change in behaviour most warrants review against the customer's expected profile?",o:["A student account suddenly routing five-figure international transfers unrelated to any stated purpose","A salaried customer's monthly salary credit","A small merchant's holiday sales bump","A customer updating their email"],a:0,e:"Sharp deviation from stated purpose and financial capacity — volume, velocity, geography — is the core 'inconsistent with profile' indicator."},
+{d:6,q:"Filing deadlines for suspicious reports (where jurisdictionally defined) generally run from:",o:["The customer's onboarding date","The point suspicion is formed/detected, making prompt investigation and escalation essential","The end of the fiscal year","The customer's next login"],a:1,e:"Clocks typically start at detection/formation of suspicion (e.g., 30 days in some regimes), so internal escalation delays directly threaten compliance."},
+{d:6,q:"An analyst is pressured by a sales lead to 'hold off' reporting a high-revenue customer. The correct action is:",o:["Comply — revenue matters","Proceed through the reporting process independent of commercial pressure and escalate the interference to the MLRO","Delete the alert","Ask the customer to explain first"],a:1,e:"Reporting decisions sit with compliance, insulated from commercial influence. Pressure to suppress a report is itself a serious governance red flag to escalate."},
+{d:6,q:"Rapid movement of newly deposited funds through an account with little balance retention ('pass-through' activity) is suspicious primarily because it suggests:",o:["Good cash-flow management","The account exists to layer or relay funds rather than for genuine personal or business use","Customer loyalty","High creditworthiness"],a:1,e:"Genuine accounts show residence of funds and purposeful spending. In-fast/out-fast behaviour with no economic rationale marks relay/layering nodes."},
+{d:6,q:"When suspicion arises mid-transaction and local law allows delaying, the safest sequence is:",o:["Complete the transaction, then think","Consult policy/MLRO on whether consent/defence filing is required before proceeding, and avoid alerting the customer to the reason for delay","Tell the customer a report is being filed","Decline and explain the monitoring rule involved"],a:1,e:"Some regimes require pre-transaction reporting/consent (a 'defence'). Handling must follow local law and never disclose the true reason to the customer."},
+{d:6,q:"Which is a red flag for terrorist financing rather than typical laundering?",o:["Very large single transfers between corporates","Numerous small donations aggregated and sent toward conflict-adjacent regions or flagged organisations, with amounts too small to trigger value thresholds","Property purchases through shell companies","Casino chip conversions"],a:1,e:"TF often features small values, crowdfunding/donation channels, and geography or affiliation signals — value thresholds alone will miss it."},
+{d:6,q:"'Defensive filing' (reporting everything to avoid judgment) is discouraged because it:",o:["Costs postage","Buries FIUs in low-value reports, degrading the intelligence system, and signals weak internal analysis","Is illegal in all countries","Reduces the firm's workload"],a:1,e:"Quality over volume: indiscriminate filing dilutes actionable intelligence and suggests the firm cannot distinguish risk — a supervisory concern in itself."},
+{d:6,q:"A crypto exchange detects a customer receiving funds directly from a sanctioned mixer address. The response should be:",o:["Ignore — mixers are legal software","Treat as a potential sanctions and ML issue: block/escalate per sanctions policy, investigate, and file required reports","Refund the sender","Ask the customer to use a different mixer"],a:1,e:"Direct exposure to a sanctioned service triggers sanctions obligations (blocking/rejecting per regime) plus suspicious activity assessment — two parallel duties."},
+{d:6,q:"Internal escalation of suspicion by front-line staff should be:",o:["Discouraged to reduce noise","Easy, documented and protected — staff report to the MLRO/compliance without fear, and unresolved doubts err toward escalation","Routed through the customer's relationship manager for approval","Made only in writing to the CEO"],a:1,e:"The internal reporting duty is individual: staff escalate to the nominated officer, who decides on external filing. Blocking or filtering escalations creates personal and firm liability."},
+{d:6,q:"Which detail set makes a report about mule activity most actionable for an FIU?",o:["The analyst's personal opinions","Account identifiers, dates, amounts, counterparties, device/IP linkages, related internal accounts, and how the pattern deviates from the profile","The customer's app rating","A screenshot of the dashboard only"],a:1,e:"Actionability = specificity + linkage. Network identifiers (devices, IPs, beneficiaries) let authorities map the ring beyond one account."},
+{d:6,q:"A previously reported customer resumes similar suspicious activity three months later. The firm should:",o:["Do nothing — one report covers forever","File a continuing/supplementary report referencing the earlier filing and updated activity","Wait one year between reports","Call the customer to discuss"],a:1,e:"Ongoing suspicious activity warrants continuing reports on the cadence local rules define, cross-referencing prior filings to build the intelligence picture."},
+{d:6,q:"An account shows purchases and top-ups occurring 24/7 with machine-like regularity, inconsistent with human behaviour. The most likely explanation to investigate is:",o:["An enthusiastic shopper","Automation/bot-driven abuse — e.g., scripted card testing, laundering through automated purchases, or account farming","Time-zone travel","Loyalty to the brand"],a:1,e:"Non-human cadence (exact intervals, no sleep pattern) signals scripting. Pair behavioural analysis with device and velocity data before concluding."},
+{d:6,q:"Suspicion formed from a customer's refusal to explain activity should be:",o:["Dismissed — refusal is a right with no consequences","Weighed with other factors; unexplained inconsistency with profile can support reporting even without a known predicate offence","Reported only if the customer is foreign","Grounds for immediate police arrest by the firm"],a:1,e:"Firms need suspicion of criminal property, not a proven predicate. Evasiveness plus profile inconsistency and typology matches can meet the threshold."},
+{d:6,q:"The single most important reason SAR confidentiality is protected by law is that disclosure:",o:["Embarrasses the firm","Can compromise investigations, endanger sources and staff, and allow subjects to destroy evidence or flee","Reduces paperwork","Affects share prices"],a:1,e:"Tipping-off prohibitions protect the investigative value of reports and the safety of those involved — which is why breaches carry criminal penalties."},
+{d:5,q:"A new customer appears to be structuring transactions to stay under the account threshold. Which is the next best step in the transaction monitoring and investigation process?",o:["Clear the transactional alerts and categorize the customer as low risk.","Contact the customer to tell them the compliance team is investigating them.","File a SAR/STR to the relevant government agency.","Conduct additional research into the nature of the account and transactions."],a:3,e:"Investigation precedes reporting. An analyst gathers context \u2014 account purpose, history, linked accounts \u2014 before deciding whether the facts meet the suspicion threshold for a report."},
+{d:6,q:"Suspicious activity reporting is designed to:",o:["measure an institution's reputational risk to report to the industry.","provide an exemption to an institution in regards to supporting law enforcement investigations.","inform an institution's Board of Directors of the number of transactions reviewed each quarter.","alert law enforcement to potential instances of money laundering or terrorist financing."],a:3,e:"SARs/STRs exist to give financial intelligence units and law enforcement actionable leads on possible money laundering or terrorist financing \u2014 not to manage reputation or satisfy internal reporting cadence."},
+{d:5,q:"Launching an AML investigation with a certain belief in mind, such as the belief money laundering is occurring, and selecting specific pieces of information to support that belief while ignoring data that supports a counter view is known as what type of bias?",o:["Confirmation bias","Sampling bias","Selection bias","Conformity bias"],a:0,e:"Confirmation bias is seeking or weighting evidence that supports a pre-existing belief while discounting contradicting evidence \u2014 a documented risk in investigative work that quality-review processes are designed to catch."},
+{d:3,q:"In addition to customer name, which supplemental independent data element, if accidentally exposed, would require a breach notification to be sent to a single customer?",o:["Mobile device ID number","Username","Financial account number","Drivers license or identity card image"],a:2,e:"Most breach-notification laws define 'personal information' as a name plus a specific sensitive element \u2014 commonly a financial account or payment card number, a government ID number, or health data. A financial account number paired with a name is a classic trigger."},
+{d:4,q:"Which is a benefit of digital identification verification for anti-financial crime purposes?",o:["Protects against cyber attacks.","Removes the need for ongoing monitoring.","Improves customer experience.","Minimizes fraud risk."],a:3,e:"Digital ID verification's core AFC value is reducing fraud and impersonation risk at onboarding \u2014 it doesn't eliminate cyber risk, replace ongoing monitoring, or exist primarily for UX, though UX may improve as a side effect."},
+{d:3,q:"A customer's account is suspended due to a suspicious activity alert and the customer is demanding an immediate explanation. Who is responsible for how the response is handled?",o:["Money Laundering Reporting Officer","Legal counsel","Customer services manager","Investigations advisor"],a:0,e:"The MLRO owns accountability for how suspicious activity matters \u2014 including customer-facing handling that risks tipping off \u2014 are managed, even where legal or customer service execute parts of the response under that guidance."},
+{d:3,q:"Which information is most useful to a Money Laundering Reporting Officer (MLRO) when presenting updates, findings, and trends to members of an institution's board and upper management?",o:["Overall number of SARs/STRs submitted to a law enforcement agency","ID images of all those reported via SARs/STRs","Average time spent per analyst per investigation","Total value of all false positive alerts closed at level 2"],a:0,e:"Boards need programme-level trend indicators \u2014 SAR volume over time signals detection activity and risk trend \u2014 not case-level identifying details or narrow operational metrics."},
+{d:3,q:"Which factor is the most important for a FinTech company to consider when creating a record retention policy?",o:["Cost and location of physical storage facilities","Management endorsement of the policy","Regulatory requirements in the head office jurisdiction","Types of data that need to be retained and duration of retention"],a:3,e:"A retention policy is fundamentally defined by what must be kept and for how long; that scope should be driven by applicable regulatory requirements across every jurisdiction of operation, not storage logistics or sign-off alone."},
+{d:3,q:"Best practices in creating an audit trail that appropriately demonstrates compliance efforts include:",o:["storing research in publicly accessible folders.","designing the protocol to protect customers during investigations.","excluding search strings, keywords, and logic used during research.","documenting research at the time performed."],a:3,e:"Contemporaneous documentation \u2014 recording what was researched and why as it happens \u2014 is what makes an audit trail credible; retrospective reconstruction is weaker evidence and search logic should be preserved, not excluded."},
+{d:5,q:"Who should an AML investigator seek clarification or documentation from regarding an alert that was escalated from the transaction monitoring system for a corporate client?",o:["Compliance manager","Transaction monitoring analyst","Relationship manager","Customer support officer"],a:2,e:"The relationship manager typically holds the commercial context \u2014 business purpose, ownership, expected activity \u2014 needed to assess whether a corporate client's transaction pattern is consistent with a legitimate rationale."},
+{d:3,q:"Which is the primary purpose of applying a risk-based approach?",o:["Focus resources and attention on the highest risks.","Adhere to Financial Action Task Force (FATF) recommendations.","Apply industry best practices on risk management.","Comply with AML regulations."],a:0,e:"The risk-based approach exists to direct finite compliance resources proportionally to risk \u2014 the other options are downstream reasons firms adopt it, not the purpose of the approach itself."},
+{d:2,q:"A risk associated with convertible virtual currency transactions is that:",o:["they may allow for greater anonymity than other types of non-cash payment methods.","all virtual currency transactions are run through tumblers, which makes it difficult to identify the original source of funds.","the use of cold storage may increase the probability that a transaction is hacked or stolen.","no investigative tools are readily available for tracing activity on the blockchain."],a:0,e:"Convertible virtual currency can offer greater pseudonymity than traditional non-cash rails. Not all transactions use tumblers, cold storage reduces hacking exposure rather than increasing it, and blockchain analytics tools are widely available."},
+{d:4,q:"Which type of data allows a FinTech to validate jurisdictional risks when onboarding customers remotely using a non-face-to-face process?",o:["Biometric","Tenant identifiers","Geolocation","Device number"],a:2,e:"Geolocation data lets a FinTech confirm whether a claimed location is consistent with actual access location, directly informing jurisdictional risk during remote onboarding."},
+{d:3,q:"What is the purpose of contextual transaction monitoring?",o:["Identify anomalies in a client's behavior based on information known about the client or counterparty.","Verify and monitor the disbursement of funds and review the underlying documents.","Manually assess each transaction against past client activity to prevent money laundering.","Detect outliers in a client's future behavior to prevent fraudulent activity and impersonation."],a:0,e:"Contextual monitoring judges transactions against what is known about the specific client and counterparty relationship \u2014 profile, purpose, history \u2014 rather than applying generic thresholds alone."},
+{d:2,q:"A product that allows its users to store value through a debit or credit card, a bank account and/or other designated channels to pay for goods and services is a:",o:["front office platform.","social messaging app.","marketplace platform.","mobile wallet."],a:3,e:"A mobile wallet stores value linked to funding sources (cards, bank accounts) and lets users pay for goods and services from that stored balance."},
+{d:3,q:"A FinTech employee working in the compliance department asks a customer service representative to follow up with a client to clarify the beneficial owners of an entity. The customer service representative is serving as the:",o:["fourth line of defense.","first line of defense.","second line of defense.","third line of defense."],a:1,e:"Front-line, customer-facing staff who perform this task at compliance's request are still acting as the first line of defense \u2014 the business function executing controls day to day \u2014 with compliance as the second line directing it."},
+{d:6,q:"Regulated FinTechs are required to file:",o:["SARs/STRs on all suspicious matters.","CTRs for all suspicious transactions.","CTRs when partner banks deem a transaction suspicious.","SARs/STRs for all cash transactions exceeding a minimum amount."],a:0,e:"Suspicious activity reports are filed based on suspicion, regardless of amount. Currency transaction reports are separate, threshold-triggered filings unrelated to suspicion."},
+{d:4,q:"According to Financial Action Task Force (FATF) Standards, a reliable independent digital identification (ID) system:",o:["allows entities to disregard the digital ID system, with very minimal oversight of its functions.","has the potential to reduce costs, increase efficiencies, and allow for reallocation of resources.","provides regulatory agencies and organizations with a real-time feed of an entity's KYC procedures.","removes all regulatory responsibility from the entity for KYC obligations and verification."],a:1,e:"FATF guidance recognises that a reliable, independent digital ID system can lower onboarding costs and free up resources for higher-risk work \u2014 it does not remove the regulated entity's underlying KYC responsibility."},
+{d:5,q:"A law enforcement representative calls a compliance officer at a virtual asset service provider (VASP) exchange company and requests information for an account in connection with an ongoing terrorist financing investigation. Which action should the compliance officer take?",o:["Ask their manager if they can provide the information.","Request that the law enforcement representative provide a court order.","Immediately provide the materials to the law enforcement representative.","Seek permission from outside legal counsel."],a:1,e:"Verbal requests, even urgent ones, should be validated through proper legal process \u2014 a court order or equivalent \u2014 before customer data is disclosed, ensuring the request is authentic, scoped, and lawful."},
+{d:3,q:"The CEO of a FinTech asks a newly appointed compliance officer to develop a risk-based approach for the business. Which approach should the compliance officer follow?",o:["Ask the CEO what they think the key risks are and use those as the basis of the risk-based approach.","Write a memo to all staff members asking that they escalate all customer onboarding documents to the compliance officer to check for money laundering risks.","Advise the CEO that there is no need for a risk-based approach as there should be zero tolerance for money laundering.","Conduct a risk assessment using guidance provided by authoritative bodies and determine the top risks to prioritize."],a:3,e:"A defensible risk-based approach starts with a structured risk assessment informed by regulatory and standard-setter guidance \u2014 not the CEO's informal view, blanket escalation of all documents, or an unworkable zero-tolerance stance."},
+{d:3,q:"Residual risk is risk that:",o:["makes businesses vulnerable to money laundering without any controls.","measures drivers and the allocation of the findings into a risk range for control.","exists without any controls in place.","remains once controls are implemented."],a:3,e:"Residual risk is what's left after controls are applied \u2014 the figure boards evaluate against risk appetite. Risk before controls is 'inherent risk', a different concept."},
+{d:3,q:"An AI-based transaction monitoring system should result in the total number of flagged transactions:",o:["increasing as the software becomes more sensitive to money laundering indicators.","remaining approximately consistent.","fluctuating depending on the seasonality of transactions.","decreasing as the software disqualifies more false positives."],a:3,e:"A well-tuned AI/ML monitoring system should reduce noise over time by learning to disqualify low-value false positives, concentrating alerts on genuinely suspicious activity \u2014 the central promise of model-driven tuning."},
+{d:4,q:"What is the process of reviewing online news sites, forums, and other sources for indications of past or present criminal activity by a client?",o:["Reputation management","Adverse media checking","Digital persona reporting","Transaction monitoring"],a:1,e:"Adverse media (negative news) checking is the standard due-diligence step of screening public sources for indications a client has been linked to crime, sanctions, or serious misconduct."},
+{d:4,q:"During customer onboarding, an applicant's name matches a politically exposed person (PEP) watchlist. Which is the next best step for an analyst to take?",o:["Deny the PEP based on money laundering or fraud risk.","Request additional supporting information from the local Financial Intelligence Unit to confirm or deny PEP status.","Evaluate the flag against results from adverse media screening.","Compare the applicant's information to the watchlist to confirm the accuracy of the flag."],a:3,e:"The immediate next step for a name match is confirming it's a true positive \u2014 comparing identifying details (DOB, nationality, other identifiers) against the watchlist entry \u2014 before any PEP-specific escalation or decision follows."},
+{d:4,q:"According to Financial Action Task Force (FATF) guidance, which practices are crucial for mitigating many risks associated with privacy and data protection?",o:["Technical standards and preventative business practices","Investigative and analytical business practices","Clear and concise business practices","Legal standards and detective business practices"],a:0,e:"FATF guidance on digital ID and data protection emphasises technical safeguards (encryption, access controls, data minimisation) paired with preventative business practices as the core mitigants for privacy risk."},
+{d:2,q:"What tool increases the anonymity of cryptocurrency transactions by aggregating similarly sized transactions, making their sources harder to trace?",o:["Shuffler","Mingler","Blender","Mixer"],a:3,e:"A mixer (or tumbler) pools and redistributes funds from many participants to break the traceable link between a transaction's source and destination on an otherwise transparent ledger."},
+{d:6,q:"An automated alert shows that a client is trying to transact from a country subject to economic and trade sanctions. Which information about the client is most useful for an analyst conducting an investigation?",o:["Statement of account","Full name","Internet Protocol (IP) address access logs","Purchase history"],a:2,e:"Since the alert concerns claimed geographic origin, IP address access logs help the analyst verify actual access location, detect VPN or proxy use, and establish a pattern of access consistent or inconsistent with the flagged jurisdiction."},
+{d:2,q:"At account opening, a financial crime analyst should consider the risk of:",o:["synthetic identification.","phishing.","credential stuffing.","credential interception."],a:0,e:"Synthetic identity risk \u2014 a fabricated identity blending real and invented data \u2014 is squarely an account-opening concern, whereas phishing, credential stuffing, and interception are post-account, account-takeover risks."},
+{d:4,q:"The Financial Action Task Force (FATF) recommends that CDD measures, including customer identification and verification, be informed by:",o:["a risk-based approach.","robust analytics and reporting.","training software systems.","quality management systems."],a:0,e:"FATF Recommendation 1 and related guidance make the risk-based approach the organising principle for how CDD intensity should be calibrated."},
+{d:4,q:"An updated due diligence review of a FinTech's expanded business and customer base is most critical when the company is experiencing an increase in:",o:["internal training sessions on AML conducted on the expanded business.","types of customers that could potentially impact risk factors.","expected monthly call center volume.","new hires assigned to account-opening processes and transaction monitoring."],a:1,e:"Diversification of customer types changes the risk profile directly and is the trigger for revisiting due diligence \u2014 staffing, training, and call volume are operational, not risk-defining, changes."},
+{d:2,q:"Comprehensive sanctions levied against a country pose which primary type of risk to the financial services providers who do business in that jurisdiction?",o:["Reputational","Financial","Operational","Regulatory"],a:3,e:"Comprehensive sanctions primarily create regulatory risk: any dealing touching the sanctioned jurisdiction risks violating sanctions law, exposing the firm to enforcement, penalties, and licence consequences \u2014 financial and reputational effects follow from that regulatory exposure."},
+{d:4,q:"Which most comprehensively describes the factors used to risk-rate FinTechs?",o:["Product, service, transaction, and channel","Industry, jurisdiction, shell companies, and politically exposed persons","Customer, jurisdiction, product, and channel","Customer, business or entity, beneficial owners, and customer location"],a:2,e:"Standard risk-rating models combine customer type, geography/jurisdiction, product or service, and delivery channel \u2014 the four classic dimensions of AML risk assessment."},
+{d:6,q:"A money transfer business receives multiple requests for fund transfers to high-risk jurisdictions just under the reporting threshold from a client. What risk does the client's behavior potentially pose to the business?",o:["Terrorist financing","Evading reporting","Narcotics sales","Evading sanctions"],a:1,e:"Repeated just-under-threshold transfers is the textbook signature of structuring \u2014 deliberately evading the reporting obligation itself \u2014 regardless of the underlying predicate activity."},
+{d:2,q:"Which factor poses the highest inherent risk for money laundering or terrorist financing to FinTechs?",o:["Representative offices are opened to operate for customer verification purposes.","Onboarding is conducted via a non-face-to-face eKYC solution that is outsourced to a leading RegTech.","Products can only be topped up from the named bank account.","Users have access to the FinTech's application through multiple devices."],a:1,e:"Non-face-to-face onboarding is inherently higher risk because it removes physical verification; outsourcing to a vendor doesn't eliminate that inherent channel risk, only mitigates it \u2014 the other options describe risk-reducing controls."},
+{d:2,q:"The Financial Action Task Force (FATF) defines a virtual currency exchanger as a person or entity that is engaged as a business in the:",o:["storage of virtual currency while awaiting an exchange.","issuing of a centralized virtual currency, establishing rules for its use, and creating a centralized ledger.","obtaining of virtual currency to purchase real or virtual goods or services.","exchange of virtual currency for other means of value while charging a fee."],a:3,e:"FATF defines an exchanger by the business of converting virtual currency for fiat or other value (typically for a fee) \u2014 distinct from an issuer (which creates the currency) or an individual user (which merely spends it)."},
+{d:3,q:"An immediate financial crime risk assessment review is most needed following a change of:",o:["advertisement channel to seek more attention from the target customer base.","business services in anticipation of a merger to serve more international customers.","company brand image to attract more customers from the younger generation.","Money Laundering Reporting Officer of the firm."],a:1,e:"A merger expanding into new services and international customer segments materially changes the risk profile \u2014 new geographies, products, and customer types \u2014 warranting an immediate risk assessment refresh."},
+{d:3,q:"Transaction monitoring systems need to be tuned to ensure:",o:["alerts generated are true alerts with minimal false positives.","Financial Action Task Force (FATF) recommendations are closely followed.","the minimum number of SARs/STRs are filed to regulators.","data privacy leaks are minimized."],a:0,e:"Tuning exists to improve detection quality \u2014 maximising genuinely suspicious alerts while minimising false positives \u2014 not to minimise filings or serve unrelated privacy or FATF-adherence goals directly."},
+{d:3,q:"An analyst is testing the firm's transaction monitoring system rule that alerts on three sequential transactions of 1,000 USD or greater by creating two new scenarios \u2014 one alerting at 1,100 USD and one at 900 USD. This testing process is known as:",o:["statistical cross-referencing.","risk-based machine learning.","above-the-line and below-the-line.","qualitative optimization."],a:2,e:"Testing a threshold by comparing scenarios just above and just below the current line is the standard above-the-line/below-the-line methodology used to validate and tune monitoring rule thresholds."},
+{d:4,q:"Which action should a FinTech take prior to deploying an eKYC technology?",o:["Establish the underlying source of information as private or public.","Evaluate the false positive rate and sensitivity of the parameters.","Validate the reliability and independence of underlying source information.","Review the accessibility and functionality of the available APIs."],a:2,e:"Before relying on any eKYC solution, a firm must validate that its underlying data sources are reliable and independent \u2014 the foundation for trusting the identity verification it produces, echoing FATF's digital ID reliability criteria."},
+{d:6,q:"After an institution files a SAR/STR on a person, the institution will:",o:["disclose best practices to prevent the reported activity.","treat the report as non-disclosable.","notify the customers that a SAR/STR has been filed.","publish the name of the 'suspicious' individual as a warning."],a:1,e:"SAR/STR filings are strictly confidential (non-disclosable) \u2014 notifying the customer or publicising the report would constitute tipping off, a criminal offence in most jurisdictions."},
+{d:2,q:"A sponsor bank's payment-processing volume grows sevenfold over a few years while its compliance program stays flat, and the bank cannot explain the purpose of transactions moving through several fintech partners. This illustrates that in a Banking-as-a-Service (BaaS) model:",o:["Only the fintech partner carries BSA/AML liability, since it owns the customer relationship.","The sponsor bank remains accountable for understanding its partners' customers and transaction purposes, even as volume scales.","Regulators only examine BaaS arrangements once a bank exceeds a very large asset threshold.","Outsourcing payment processing transfers the bank's recordkeeping obligations to the fintech."],a:1,e:"Sponsor banks retain BSA/AML accountability for activity flowing through their charter regardless of size or partner count; failure to understand underlying customers' business and transaction purpose is a core BaaS control gap regulators repeatedly cite."},
+{d:3,q:"An automated suspicious activity alerting system continues using filtering thresholds that were never recalibrated as the firm's risk profile changed with new products and partners. The most relevant governance failure here is:",o:["Lack of a mobile app for customers","Insufficient monitoring model tuning aligned to the firm's evolving risk profile","Excessive SAR filing volume","Underuse of biometric onboarding"],a:1,e:"Thresholds and rule logic must be revisited as a firm's risk profile shifts; static tuning that doesn't scale with new products, partners, or volume is a recurring theme in monitoring-related enforcement findings."},
+{d:3,q:"Regulatory expectations for bank-fintech partnerships increasingly require agreements to define which party performs which compliance function. Which arrangement best reflects this expectation?",o:["A verbal understanding that the fintech 'handles compliance' generally","A contract naming who verifies identities, monitors transactions, files reports, and escalates cases, with bank audit rights over the fintech's program","A contract that only covers technology uptime and fee schedules","An agreement where the fintech is barred from ever contacting the sponsor bank's compliance team"],a:1,e:"Regulators expect documented, granular ownership of each compliance function plus the bank's contractual right to audit and review the fintech's program \u2014 ambiguity about who does what is a common examination finding."},
+{d:2,q:"Several recent enforcement cases against a mobile payments provider, a neobank, and a crypto exchange centered on the same underlying theme. What was it?",o:["Excessive customer service wait times","AML program design and execution failures at scale, despite rapid user growth","Overcharging foreign exchange fees","Failure to support multiple languages"],a:1,e:"Across these cases, growth in users and transaction volume outpaced investment in AML program design, staffing, and monitoring \u2014 a pattern regulators have repeatedly flagged as the common root cause in FinTech enforcement."},
+{d:3,q:"Some sponsor banks now require regulatory non-objection before onboarding any new fintech partner and have begun offboarding weaker existing partnerships. This trend reflects:",o:["A shortage of fintech companies seeking bank partners","Regulators pushing sponsor banks toward slower, more deliberate partner onboarding and closer ongoing oversight","A ban on all BaaS arrangements","Fintechs no longer needing bank charters at all"],a:1,e:"Rather than banning BaaS outright, regulators have pushed for more disciplined onboarding gates and continuous oversight; some banks have responded with non-objection requirements or by exiting weaker partnerships."},
+{d:3,q:"A compliance program review finds that fintechs relying heavily on AI-driven decisioning and monitoring frequently lack adequate human-review controls. The best response to this finding is:",o:["Disable all AI-based tools immediately","Pair automated detection with model governance \u2014 validation, explainability, and documented human oversight of outcomes","Rely solely on AI outputs without review to reduce cost","Outsource model governance entirely to the vendor with no internal oversight"],a:1,e:"Model risk guidance consistently calls for automation to be paired with governance: validated, explainable models plus human review of outcomes \u2014 not wholesale rejection of AI, nor unmonitored reliance on it."},
+{d:2,q:"A large, well-resourced financial institution was fined a record amount for AML program design and customer due diligence failures. This underscores that within the broader financial-crime enforcement environment:",o:["Only small, scaling startups face material AML penalties","Enforcement reaches large, well-resourced institutions, not just scaling startups","AML penalties are capped regardless of firm size","Larger firms are exempt from BSA obligations"],a:1,e:"Record AML penalties have hit large, established institutions as well as scaling fintechs \u2014 resourcing alone doesn't guarantee an adequate program if governance, design, and execution lag."},
+{d:4,q:"Sponsor bank due diligence checklists increasingly flag the absence of a single named, accountable compliance owner at a prospective fintech partner as a critical gap. Why does this matter most?",o:["It has no real bearing on onboarding decisions","Without a named, accountable owner, the bank cannot get a clear point of contact for compliance decisions, filings, or examination questions \u2014 undermining confidence in the whole program","Compliance owners must personally approve every transaction","Only large fintechs are required to name a compliance owner"],a:1,e:"A clearly identified, accountable compliance owner is what lets a sponsor bank (and regulators) hold someone responsible for program decisions and filings \u2014 its absence signals an immature program."},
+{d:6,q:"A pooled custodial account structure holds many fintech end-users' funds in a single bank account, and a reconciliation failure makes it hard to trace which portion belongs to which customer. This type of account structure primarily raises which risk?",o:["Reduced app loading speed","Difficulty tracing which individual end-user funds relate to specific transactions if records are inadequate","Guaranteed elimination of fraud","Automatic deposit insurance for all pooled funds regardless of recordkeeping"],a:1,e:"Pooled custodial accounts obscure individual customer-level detail unless the fintech maintains precise sub-ledger records; poor reconciliation can make it difficult to trace funds to specific end users during an investigation."},
+{d:2,q:"An industry review found that many serious compliance failures involved improper use of compliance technology itself, rather than its absence. This finding most directly supports the need for:",o:["Removing all compliance technology and reverting to manual processes","Vendor governance, model validation, and human-review controls around the compliance tools that are deployed","Purchasing the most expensive available software regardless of fit","Ignoring technology-related findings since tools are inherently reliable"],a:1,e:"The issue isn't the existence of compliance technology but how it's configured, validated, and overseen \u2014 reinforcing that vendor governance and human review are essential even for purpose-built AML tools."},
+{d:2,q:"A challenger bank's short-term credit product sees a spike in maximum-limit purchases of easily resold electronics, funded by first payments on cards later confirmed stolen. Which control combination best addresses this typology?",o:["Device/velocity checks at application plus category-based purchase limits and step-up verification for high-resale-value goods","Removing all credit limits to reduce friction","Approving all applications instantly with no review","Limiting the product to existing long-term customers only, with no new controls"],a:0,e:"Combining application-level fraud signals (device, velocity) with product-level friction (limits, step-up checks) on high-risk categories addresses the specific typology without abandoning the product model."},
+{d:5,q:"During a joint fraud-and-AML investigation into a mule network exploiting a P2P payment app, investigators find the same devices and IP ranges tied to dozens of seemingly unrelated accounts. Which next step best reflects sound investigative practice?",o:["Close each account's alert individually without cross-referencing linked identifiers","Use link analysis across the shared device/IP/beneficiary data to map the full network before deciding on reporting and account actions","Report only the single account that triggered the original alert","Wait for law enforcement to identify the network independently"],a:1,e:"Sound practice uses the firm's own digital telemetry (devices, IPs, beneficiaries) to map connected accounts before finalising reporting and remediation \u2014 addressing the network, not just the single triggering account."},
+{d:3,q:"Ongoing legislative and regulatory attention to how supervisors oversee bank-fintech partnerships signals to compliance teams that:",o:["BaaS oversight is a settled, low-priority topic unlikely to change","Oversight expectations for bank-fintech partnerships remain a live, evolving area that compliance programs should track closely","Fintechs will be exempted from AML law once attention moves on","Ongoing attention removes the need for internal risk assessments"],a:1,e:"Ongoing legislative and regulatory attention to BaaS oversight signals that expectations are still developing \u2014 programs should stay current rather than assume today's controls are permanently sufficient."},
+{d:4,q:"A sponsor bank's due diligence process on a prospective fintech partner uncovers an undisclosed prior enforcement action against one of the fintech's founders. Under sponsor-bank diligence norms, this finding should:",o:["Be ignored if the fintech's compliance policy documents otherwise look strong","Be treated as a significant red flag that can result in rejection regardless of how strong the written policies look","Only matter if the founder is currently a majority shareholder","Be resolved by the fintech simply removing the founder's name from public materials"],a:1,e:"Adverse findings on founders or leadership \u2014 undisclosed enforcement history, fraud, or material litigation \u2014 are treated as high-weight red flags in sponsor-bank due diligence, independent of how strong the paper program looks."},
+{d:6,q:"A crypto derivatives platform's onboarding and monitoring gaps for users trading through intermediated accounts contributed to an enforcement finding. Which practice most directly addresses this typology?",o:["Applying the same due diligence depth regardless of whether an account is directly held or accessed via an intermediary","Extending look-through due diligence and enhanced monitoring to accounts accessed through intermediaries or omnibus structures","Exempting intermediated accounts from monitoring to reduce alert volume","Relying entirely on the intermediary's home jurisdiction to certify the underlying users"],a:1,e:"Intermediated or omnibus-style access can obscure the true underlying customer; look-through diligence and enhanced monitoring on these structures closes a gap that flat, one-size-fits-all treatment leaves open."},
+{d:3,q:"Following enforcement findings citing weak independent testing at a sponsor bank, a strengthened internal audit function for a BaaS program should prioritise:",o:["Testing only the bank's own direct customers, excluding fintech-partner-driven activity","Independently testing high-risk areas including fintech-partner transaction flows, alert calibration, and SAR decisioning quality","Auditing marketing materials only","Relying on the fintech partner's self-assessment as sufficient evidence"],a:1,e:"Enforcement findings have specifically cited internal audit's failure to test high-risk areas tied to fintech partnerships; independent testing must reach partner-driven activity, not just the bank's own direct book."},
+{d:2,q:"Several jurisdictions have newly pulled payment institutions and virtual-asset providers into formal AML compliance regimes for the first time. For a FinTech expanding into these markets, the most immediate implication is:",o:["No additional compliance work is needed since global standards already apply everywhere","New, jurisdiction-specific registration, licensing, and AML program obligations must be assessed and built into the expansion plan","These reforms apply only to domestic banks, not foreign fintech entrants","Expansion can proceed and compliance can be addressed only if a regulator later raises concerns"],a:1,e:"Newly formalised regimes typically bring specific registration, licensing, and program requirements; a FinTech entering these markets needs to map and build for these obligations proactively, not retroactively."},
+{d:3,q:"A FinTech uses the same AI models for both customer onboarding decisions and transaction monitoring across multiple regulatory regimes with overlapping AI-specific and AML-specific governance rules. The practical takeaway is:",o:["AI governance is unrelated to AML compliance and can be handled by a separate team with no coordination","AI governance (documentation, risk classification, human oversight) needs to be integrated with AML model governance, given overlapping obligations and shared systems","Only the jurisdiction where the company is headquartered matters, regardless of where customers are served","AI governance rules only affect marketing tools, not compliance or onboarding models"],a:1,e:"Where the same AI systems support onboarding or monitoring, AI-specific governance obligations and AML model risk expectations overlap and should be coordinated rather than managed in silos."},
+{d:5,q:"A compliance team investigating a suspected mule network discovers that some flagged accounts belong to victims of job-scam recruitment rather than knowing participants. How should this distinction affect the response?",o:["Treat all flagged accounts identically regardless of apparent intent, since only the transaction pattern matters for reporting decisions","Continue to assess and report the suspicious activity itself, while considering victim-support and communication approaches appropriate for those who appear to be unwitting participants","Immediately unblock accounts that claim victim status without further review","Only report accounts where the holder admits wrongdoing"],a:1,e:"Reporting obligations are based on the suspicious activity, not the account holder's culpability \u2014 but firms increasingly differentiate customer-facing handling (support, education, remediation) for likely unwitting mules versus knowing participants, without changing the reporting duty."},
+{d:2,q:"Fintechs increasingly cite 'lack of automation' as a barrier to meeting BSA requirements, even as overall compliance costs remain high. The most balanced interpretation for a scaling FinTech's compliance strategy is:",o:["Automation alone guarantees compliance, so maximum spend on tools is sufficient","Automation should reduce manual burden and improve consistency, but must be paired with sound program design, staffing, and governance \u2014 tools don't substitute for a properly designed program","Compliance costs are unavoidable and cannot be managed through better process design","Firms should avoid automation entirely to reduce audit complexity"],a:1,e:"Automation helps close capability gaps, but enforcement history shows technology without proper governance, staffing, and program design still fails \u2014 tools are an enabler, not a replacement for a sound compliance program."},
+{d:3,q:"Across a series of sponsor-bank enforcement cases, which single indicator would most concern an examiner reviewing a BaaS program's health?",o:["The bank has a written BSA/AML policy on file","Transaction volume and partner count have grown substantially while staffing, monitoring calibration, and independent testing have stayed static","The bank conducts periodic due diligence refreshes on fintech partners","The bank's compliance officer attends industry conferences"],a:1,e:"The consistent enforcement theme across BaaS cases is growth outpacing the compliance infrastructure meant to control it \u2014 volume and complexity scaling while controls, staffing, and testing remain flat is the clearest red flag."}
+];
+</script>
+<script>
+/* ================= STATE & STORAGE ================= */
+let customQs = [];               // imported / AI-generated questions
+let stats = { answered:0, correct:0, streak:0, bestStreak:0, missed:[], domain:{}, exams:[] };
+let memStore = {};               // last-resort fallback if localStorage is unavailable (e.g. private mode)
+
+const store = {
+  async get(k){
+    try{ const v = window.localStorage.getItem(k); return v; }
+    catch(e){ return memStore[k] ?? null; }
+  },
+  async set(k,v){
+    try{ window.localStorage.setItem(k,v); }
+    catch(e){ memStore[k]=v; }
+  }
+};
+
+function allQuestions(){ return BUILTIN.concat(customQs); }
+
+async function loadState(){
+  const s = await store.get('cafca:stats'); if(s){ try{ stats = JSON.parse(s); }catch(e){} }
+  const c = await store.get('cafca:custom'); if(c){ try{ customQs = JSON.parse(c); }catch(e){} }
+  const t = await store.get('cafca:theme'); if(t) setTheme(t, false);
+  refreshHome();
+}
+async function saveStats(){ await store.set('cafca:stats', JSON.stringify(stats)); }
+async function saveCustom(){ await store.set('cafca:custom', JSON.stringify(customQs)); }
+
+/* ================= THEME ================= */
+function setTheme(t, persist=true){
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('.tdot').forEach(d=>d.classList.toggle('active', d.dataset.t===t));
+  if(persist) store.set('cafca:theme', t);
+}
+document.querySelectorAll('.tdot').forEach(d=>d.addEventListener('click',()=>setTheme(d.dataset.t)));
+
+/* ================= NAV ================= */
+const screens = ['home','setup','quiz','results','stats','bank'];
+function show(name){
+  screens.forEach(s=>document.getElementById('scr-'+s).classList.toggle('hidden', s!==name));
+  window.scrollTo({top:0});
+  if(name==='home') refreshHome();
+  if(name==='stats') renderStats();
+  if(name==='bank') renderBank();
+}
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go)));
+
+function toast(msg){
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 2600);
+}
+
+/* ================= HOME ================= */
+function refreshHome(){
+  document.getElementById('bankPill').textContent = allQuestions().length + ' questions';
+  document.getElementById('stAnswered').textContent = stats.answered;
+  document.getElementById('stAccuracy').textContent = stats.answered? Math.round(100*stats.correct/stats.answered)+'%' : '—';
+  document.getElementById('stStreak').textContent = stats.bestStreak;
+  document.getElementById('stExams').textContent = stats.exams.length;
+  document.getElementById('stMissed').textContent = stats.missed.length;
+  // readiness seal: blend of accuracy and coverage
+  const acc = stats.answered? stats.correct/stats.answered : 0;
+  const coverage = Math.min(1, stats.answered/120);
+  const readiness = stats.answered? Math.round(100*(acc*0.75 + coverage*0.25)) : 0;
+  const arc = document.getElementById('sealArc');
+  arc.style.strokeDashoffset = 351.8 * (1 - readiness/100);
+  document.getElementById('sealPct').textContent = stats.answered? readiness+'%' : '—';
+  document.getElementById('sealHint').textContent = stats.answered?
+    (readiness>=70? 'Above the 70% pass line — keep drilling' : 'Below the 70% pass line — target weak domains')
+    : 'Answer questions to build your seal';
+}
+
+document.querySelectorAll('.mode-card').forEach(c=>c.addEventListener('click',()=>{
+  const m=c.dataset.mode;
+  if(m==='quick') startSession({type:'Quick Drill', qs:pickRandom(allQuestions(),10), timed:false, exam:false});
+  else if(m==='domain') openSetup();
+  else if(m==='exam') startExam();
+  else if(m==='retry') startRetry();
+  else show(m);
+}));
+
+function pickRandom(arr,n){ const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a.slice(0,Math.min(n,a.length)); }
+
+/* ================= DOMAIN SETUP ================= */
+let selectedDomains = new Set([1,2,3,4,5,6]);
+function openSetup(){
+  const list=document.getElementById('domainList'); list.innerHTML='';
+  const qs=allQuestions();
+  Object.entries(DOMAINS).forEach(([id,d])=>{
+    const n=qs.filter(q=>q.d==id).length;
+    const ds=stats.domain[id]||{a:0,c:0};
+    const acc=ds.a? Math.round(100*ds.c/ds.a):0;
+    const row=document.createElement('div');
+    row.className='domain-row'+(selectedDomains.has(+id)?' selected':'');
+    row.innerHTML=`<span class="dcode">${d.code}</span><span class="dname">${d.name}</span>
+      <div class="dbar"><i style="width:${acc}%"></i></div>
+      <span class="dcount">${n} Qs · ${ds.a?acc+'%':'—'}</span>`;
+    row.addEventListener('click',()=>{
+      if(selectedDomains.has(+id)) selectedDomains.delete(+id); else selectedDomains.add(+id);
+      row.classList.toggle('selected');
+    });
+    list.appendChild(row);
+  });
+  show('setup');
+}
+document.getElementById('startDrill').addEventListener('click',()=>{
+  if(!selectedDomains.size){ toast('Select at least one domain'); return; }
+  const pool=allQuestions().filter(q=>selectedDomains.has(q.d));
+  if(!pool.length){ toast('No questions in selected domains'); return; }
+  const n=+document.getElementById('drillCount').value;
+  const timed=document.getElementById('drillTimed').checked;
+  startSession({type:'Domain Drill', qs:pickRandom(pool,n), timed, secondsPerQ:90, exam:false});
+});
+
+/* ================= SESSION ENGINE ================= */
+let S=null, timerInt=null;
+function shuffleOptions(q){
+  const idx=q.o.map((_,i)=>i);
+  for(let i=idx.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+  return {...q, o:idx.map(i=>q.o[i]), a:idx.indexOf(q.a)};
+}
+function startSession(cfg){
+  if(!cfg.qs.length){ toast('No questions available'); return; }
+  cfg.qs = cfg.qs.map(shuffleOptions);
+  S={ ...cfg, i:0, answers:new Array(cfg.qs.length).fill(null), flags:new Set(), done:false };
+  document.getElementById('quizMode').textContent=cfg.type;
+  document.getElementById('btnSubmit').classList.toggle('hidden', !cfg.exam);
+  const tEl=document.getElementById('qTimer');
+  clearInterval(timerInt);
+  if(cfg.timed){
+    S.remaining = cfg.exam? 90*60 : cfg.secondsPerQ*cfg.qs.length;
+    tEl.classList.remove('hidden','low');
+    timerInt=setInterval(()=>{
+      S.remaining--;
+      tEl.textContent=fmtTime(S.remaining);
+      if(S.remaining<=300) tEl.classList.add('low');
+      if(S.remaining<=0){ clearInterval(timerInt); toast('Time is up — submitting'); finishSession(); }
+    },1000);
+    tEl.textContent=fmtTime(S.remaining);
+  } else tEl.classList.add('hidden');
+  renderQ(); show('quiz');
+}
+function fmtTime(s){ s=Math.max(0,s); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+
+function renderQ(){
+  const q=S.qs[S.i], picked=S.answers[S.i];
+  document.getElementById('qCount').textContent=(S.i+1)+' / '+S.qs.length;
+  document.getElementById('qProgress').style.width=(100*(S.i+1)/S.qs.length)+'%';
+  document.getElementById('qDomain').textContent=DOMAINS[q.d]? DOMAINS[q.d].code+' — '+DOMAINS[q.d].name : 'Custom';
+  document.getElementById('qText').textContent=q.q;
+  const wrap=document.getElementById('qOpts'); wrap.innerHTML='';
+  const exp=document.getElementById('qExplain');
+  const revealed = !S.exam && picked!==null;
+  q.o.forEach((opt,idx)=>{
+    const el=document.createElement('div'); el.className='opt';
+    el.innerHTML=`<span class="key">${'ABCD'[idx]}</span><span>${opt}</span>`;
+    if(S.exam){ if(picked===idx) el.classList.add('picked'); }
+    else if(revealed){
+      if(idx===q.a) el.classList.add('correct');
+      else if(idx===picked) el.classList.add('wrong');
+      else el.classList.add('dim');
+    }
+    el.addEventListener('click',()=>{
+      if(!S.exam && S.answers[S.i]!==null) return;      // locked after answer in practice
+      S.answers[S.i]=idx;
+      if(!S.exam) gradeOne(q, idx);
+      renderQ();
+    });
+    wrap.appendChild(el);
+  });
+  if(revealed){
+    exp.classList.remove('hidden');
+    exp.innerHTML=`<b>${picked===q.a?'Correct':'Not quite — the answer is '+'ABCD'[q.a]}</b>${q.e||''}`;
+  } else exp.classList.add('hidden');
+  document.getElementById('btnFlag').classList.toggle('flagged', S.flags.has(S.i));
+  document.getElementById('btnPrev').disabled=S.i===0;
+  document.getElementById('btnNext').textContent=(S.i===S.qs.length-1)?(S.exam?'Review map ↓':'Finish →'):'Next →';
+  renderMap();
+}
+function gradeOne(q, idx){
+  stats.answered++; const dom=stats.domain[q.d]||(stats.domain[q.d]={a:0,c:0}); dom.a++;
+  const key=q.q.slice(0,80);
+  if(idx===q.a){ stats.correct++; dom.c++; stats.streak++; stats.bestStreak=Math.max(stats.bestStreak,stats.streak);
+    stats.missed=stats.missed.filter(k=>k!==key);
+  } else { stats.streak=0; if(!stats.missed.includes(key)) stats.missed.push(key); }
+  saveStats();
+}
+function renderMap(){
+  const map=document.getElementById('qMap'); map.innerHTML='';
+  S.qs.forEach((_,idx)=>{
+    const b=document.createElement('button'); b.textContent=idx+1;
+    if(S.answers[idx]!==null) b.classList.add('done');
+    if(S.flags.has(idx)) b.classList.add('flag');
+    if(idx===S.i) b.classList.add('now');
+    b.addEventListener('click',()=>{S.i=idx;renderQ();});
+    map.appendChild(b);
+  });
+}
+document.getElementById('btnPrev').addEventListener('click',()=>{ if(S.i>0){S.i--;renderQ();} });
+document.getElementById('btnNext').addEventListener('click',()=>{
+  if(S.i<S.qs.length-1){ S.i++; renderQ(); }
+  else if(!S.exam) finishSession();
+});
+document.getElementById('btnFlag').addEventListener('click',()=>{
+  S.flags.has(S.i)?S.flags.delete(S.i):S.flags.add(S.i); renderQ();
+});
+document.getElementById('btnQuit').addEventListener('click',()=>{ clearInterval(timerInt); show('home'); });
+document.getElementById('btnSubmit').addEventListener('click',()=>{
+  const un=S.answers.filter(a=>a===null).length;
+  if(un && !confirm(un+' unanswered question(s). Submit anyway?')) return;
+  finishSession();
+});
+
+/* ================= EXAM & RETRY ================= */
+function startExam(){
+  const pool=allQuestions();
+  if(pool.length<60){ toast('Need 60+ questions for a full sim — generating more helps!'); }
+  startSession({type:'Exam Simulation', qs:pickRandom(pool,Math.min(60,pool.length)), timed:true, exam:true});
+}
+function startRetry(){
+  const pool=allQuestions().filter(q=>stats.missed.includes(q.q.slice(0,80)));
+  if(!pool.length){ toast('Retry pile is empty — nice work'); return; }
+  startSession({type:'Retry Missed', qs:pickRandom(pool,pool.length), timed:false, exam:false});
+}
+
+/* ================= RESULTS ================= */
+let lastSession=null;
+function finishSession(){
+  clearInterval(timerInt);
+  if(S.exam){ S.qs.forEach((q,idx)=>{ if(S.answers[idx]!==null) gradeOne(q,S.answers[idx]); }); }
+  const total=S.qs.length;
+  const correct=S.qs.filter((q,idx)=>S.answers[idx]===q.a).length;
+  const pct=Math.round(100*correct/total);
+  if(S.exam){ stats.exams.push({date:new Date().toISOString().slice(0,10), pct, total}); saveStats(); }
+  lastSession=S; S.done=true;
+  // render
+  const sw=document.getElementById('stampWrap');
+  sw.innerHTML = S.exam? `<div class="stamp ${pct>=70?'pass':'fail'}">${pct>=70?'Pass':'Not yet'}</div>` : '';
+  document.getElementById('resScore').textContent=pct+'%';
+  document.getElementById('resDetail').textContent=`${correct} of ${total} correct · ${S.type}${S.exam?' · pass mark 70%':''}`;
+  const db=document.getElementById('resDomains'); db.innerHTML='';
+  Object.entries(DOMAINS).forEach(([id,d])=>{
+    const qs=S.qs.map((q,idx)=>({q,idx})).filter(x=>x.q.d==id);
+    if(!qs.length) return;
+    const c=qs.filter(x=>S.answers[x.idx]===x.q.a).length;
+    const p=Math.round(100*c/qs.length);
+    const col=p>=70?'var(--good)':(p>=50?'var(--warn)':'var(--bad)');
+    db.innerHTML+=`<div class="dom-line"><span class="mono" style="width:34px;color:var(--accent)">${d.code}</span>
+      <span class="nm">${d.name}</span><span class="mono">${c}/${qs.length}</span>
+      <div class="bar"><i style="width:${p}%;background:${col}"></i></div></div>`;
+  });
+  show('results'); refreshHome();
+}
+document.getElementById('resReview').addEventListener('click',()=>{
+  if(!lastSession) return;
+  S={...lastSession, exam:false, timed:false, i:0};  // review = practice-style reveal, no re-grading
+  S.qs.forEach((q,idx)=>{ if(S.answers[idx]===null) S.answers[idx]=q.a===0?1:0; }); // reveal unanswered as wrong pick? keep simple: mark as first wrong option
+  document.getElementById('quizMode').textContent='Review';
+  document.getElementById('btnSubmit').classList.add('hidden');
+  document.getElementById('qTimer').classList.add('hidden');
+  clearInterval(timerInt);
+  renderQ(); show('quiz');
+});
+document.getElementById('resRetryMissed').addEventListener('click',()=>{
+  if(!lastSession) return;
+  const missedQs=lastSession.qs.filter((q,idx)=>lastSession.answers[idx]!==q.a);
+  if(!missedQs.length){ toast('Nothing missed in that session'); return; }
+  startSession({type:'Retry Missed', qs:missedQs, timed:false, exam:false});
+});
+
+/* ================= STATS ================= */
+function renderStats(){
+  const sd=document.getElementById('statsDomains'); sd.innerHTML='';
+  Object.entries(DOMAINS).forEach(([id,d])=>{
+    const ds=stats.domain[id]||{a:0,c:0};
+    const p=ds.a? Math.round(100*ds.c/ds.a):0;
+    const col=p>=70?'var(--good)':(p>=50?'var(--warn)':'var(--bad)');
+    sd.innerHTML+=`<div class="dom-line"><span class="mono" style="width:34px;color:var(--accent)">${d.code}</span>
+      <span class="nm">${d.name}</span><span class="mono">${ds.a? ds.c+'/'+ds.a :'—'}</span>
+      <div class="bar"><i style="width:${p}%;background:${ds.a?col:'var(--bg2)'}"></i></div></div>`;
+  });
+  const se=document.getElementById('statsExams');
+  se.innerHTML = stats.exams.length
+    ? stats.exams.slice(-10).reverse().map(e=>`${e.date} — <b style="color:${e.pct>=70?'var(--good)':'var(--bad)'}">${e.pct}%</b> (${e.total} Qs)`).join('<br>')
+    : '<span class="muted">No mock exams yet. The stamp awaits.</span>';
+}
+document.getElementById('btnResetStats').addEventListener('click',async()=>{
+  if(!confirm('Reset all progress and exam history?')) return;
+  stats={answered:0,correct:0,streak:0,bestStreak:0,missed:[],domain:{},exams:[]};
+  await saveStats(); renderStats(); refreshHome(); toast('Progress reset');
+});
+
+/* ================= BANK ================= */
+function renderBank(){
+  const sel=document.getElementById('genDomain');
+  if(!sel.options.length) Object.entries(DOMAINS).forEach(([id,d])=>sel.add(new Option(d.code+' — '+d.name, id)));
+  const bs=document.getElementById('bankSummary'); bs.innerHTML='';
+  const qs=allQuestions();
+  Object.entries(DOMAINS).forEach(([id,d])=>{
+    const b=BUILTIN.filter(q=>q.d==id).length, c=customQs.filter(q=>q.d==id).length;
+    bs.innerHTML+=`<div class="dom-line"><span class="mono" style="width:34px;color:var(--accent)">${d.code}</span>
+      <span class="nm">${d.name}</span><span class="mono">${b} built-in · ${c} custom</span></div>`;
+  });
+  bs.innerHTML+=`<div class="dom-line" style="border-bottom:none"><span class="nm mono" style="color:var(--accent)">TOTAL</span><span class="mono">${qs.length} questions</span></div>`;
+}
+function validateQ(q){
+  return q && typeof q.q==='string' && Array.isArray(q.o) && q.o.length>=2 && q.o.length<=6
+    && Number.isInteger(q.a) && q.a>=0 && q.a<q.o.length && DOMAINS[q.d];
+}
+document.getElementById('btnImport').addEventListener('click',async()=>{
+  try{
+    const arr=JSON.parse(document.getElementById('importBox').value);
+    if(!Array.isArray(arr)) throw new Error('Expected a JSON array');
+    const valid=arr.filter(validateQ);
+    const existing=new Set(allQuestions().map(q=>q.q));
+    const fresh=valid.filter(q=>!existing.has(q.q));
+    customQs=customQs.concat(fresh); await saveCustom();
+    toast(`Imported ${fresh.length} question(s)`+(valid.length-fresh.length?` · ${valid.length-fresh.length} duplicate(s) skipped`:''));
+    document.getElementById('importBox').value=''; renderBank(); refreshHome();
+  }catch(e){ toast('Import failed: '+e.message); }
+});
+document.getElementById('btnExport').addEventListener('click',()=>{
+  document.getElementById('importBox').value=JSON.stringify(allQuestions());
+  toast('Full bank exported to the text box — copy it');
+});
+document.getElementById('btnClearCustom').addEventListener('click',async()=>{
+  if(!confirm('Delete all imported/generated questions? Built-ins remain.')) return;
+  customQs=[]; await saveCustom(); renderBank(); refreshHome(); toast('Custom questions deleted');
+});
+
+/* ================= GROW-THE-BANK PROMPT BUILDER ================= */
+document.getElementById('btnGenerate').addEventListener('click',async()=>{
+  const dId=+document.getElementById('genDomain').value;
+  const n=+document.getElementById('genCount').value;
+  const log=document.getElementById('genLog');
+  const dom=DOMAINS[dId];
+  const sample=pickRandom(BUILTIN.filter(q=>q.d===dId),2).map(q=>q.q).join(' | ');
+  const prompt=`You write ORIGINAL practice questions for the ACAMS CAFCA (FinTech AML) exam style: scenario-based, application-focused, single best answer. Never reproduce real exam content.
+Domain: "${dom.name}". Style reference (do not copy): ${sample}
+Generate ${n} questions as a raw JSON array ONLY (no markdown, no preamble, no code fences). Each item: {"d":${dId},"q":"question text","o":["opt A","opt B","opt C","opt D"],"a":<correct index 0-3>,"e":"1-2 sentence explanation"}. Vary which index is correct. Use realistic FinTech scenarios (neobanks, BNPL, crypto VASPs, BaaS, P2P, remittances).`;
+  log.classList.remove('hidden');
+  try{
+    await navigator.clipboard.writeText(prompt);
+    log.textContent='✓ Prompt copied to your clipboard.\n\n1. Paste it into a Claude chat (claude.ai or the app)\n2. Copy the JSON array Claude returns\n3. Paste it into the Import box on the right and click Import\n\nRepeat across domains to keep growing the bank.';
+  }catch(e){
+    log.textContent='Clipboard access was blocked by the browser. Copy this prompt manually:\n\n'+prompt;
+  }
+});
+
+/* ================= INIT ================= */
+loadState();
+</script>
+</body>
+</html>
